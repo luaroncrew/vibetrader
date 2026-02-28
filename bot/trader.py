@@ -80,7 +80,13 @@ class PaperTrader:
 
     def get_signal(self, df: pd.DataFrame) -> dict:
         """Generate a trading signal from recent candles."""
-        chart = render_candlestick(df, draw_marker=False)
+        total_slots = self.window_size + self.future_candles
+        price_low = float(df["low"].min())
+        price_high = float(df["high"].max())
+        chart = render_candlestick(
+            df, draw_marker=False,
+            total_slots=total_slots, price_low=price_low, price_high=price_high,
+        )
         prompt = f"Predict next {self.future_candles} candles. RSI=50.0, MACD=0.0"
         generated = predict(self.pipe, chart, prompt)
         signal = extract_signal(generated)

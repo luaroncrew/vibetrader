@@ -72,15 +72,23 @@ def run_backtest(
 
     for i in tqdm(range(0, total_possible, step), desc="Backtesting"):
         input_window = test_df.iloc[i : i + window_size]
-        target_window = test_df.iloc[i + future_candles : i + future_candles + window_size]
+        target_window = test_df.iloc[i : i + window_size + future_candles]
 
         current_close = input_window.iloc[-1]["close"]
         future_close = target_window.iloc[-1]["close"]
         actual_signal, _ = compute_signal(current_close, future_close)
         actual_pct = (future_close - current_close) / current_close
 
+        # Shared Y-normalization based on input candles only
+        input_low = float(input_window["low"].min())
+        input_high = float(input_window["high"].max())
+        total_slots = window_size + future_candles
+
         # Render input chart
-        input_img = render_candlestick(input_window, draw_marker=False)
+        input_img = render_candlestick(
+            input_window, draw_marker=False,
+            total_slots=total_slots, price_low=input_low, price_high=input_high,
+        )
 
         # Build prompt from indicators
         rsi = input_window.iloc[-1].get("rsi", 50.0)
@@ -104,10 +112,13 @@ def run_backtest(
         # Log sample images to W&B
         if log_wandb and HAS_WANDB and len(wandb_images) < 20:
             # Render actual target for comparison
-            actual_img = render_candlestick(target_window, draw_marker=True,
-                                           marker_color=(0, 255, 0) if actual_signal == "BUY"
-                                           else (255, 0, 0) if actual_signal == "SELL"
-                                           else (128, 128, 128))
+            actual_img = render_candlestick(
+                target_window, draw_marker=True,
+                marker_color=(0, 255, 0) if actual_signal == "BUY"
+                else (255, 0, 0) if actual_signal == "SELL"
+                else (128, 128, 128),
+                total_slots=total_slots, price_low=input_low, price_high=input_high,
+            )
             wandb_images.append(wandb.Image(
                 np.hstack([np.array(input_img), np.array(generated), np.array(actual_img)]),
                 caption=f"pred={signal.action} actual={actual_signal} ({actual_pct:+.2%})",

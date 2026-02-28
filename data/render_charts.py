@@ -47,11 +47,19 @@ def price_to_y(normalized: float) -> int:
     return int(CANDLE_AREA_BOTTOM - normalized * (CANDLE_AREA_BOTTOM - CANDLE_AREA_TOP))
 
 
+def clamp_y(y: int) -> int:
+    """Clamp a Y pixel coordinate to stay within the chart area."""
+    return max(CANDLE_AREA_TOP, min(CANDLE_AREA_BOTTOM, y))
+
+
 def render_candlestick(
     df_window: pd.DataFrame,
     img_size: int = IMG_SIZE,
     draw_marker: bool = False,
     marker_color: tuple = MARKER_GRAY,
+    total_slots: int | None = None,
+    price_low: float | None = None,
+    price_high: float | None = None,
 ) -> Image.Image:
     """Render a candlestick chart as a PIL image.
 
@@ -60,6 +68,10 @@ def render_candlestick(
         img_size: Output image size (square).
         draw_marker: Whether to draw the signal marker.
         marker_color: RGB tuple for the marker.
+        total_slots: Compute candle width from this instead of len(df_window).
+            Both input and target should use the same value so candle positions match.
+        price_low: Override minimum price for Y normalization.
+        price_high: Override maximum price for Y normalization.
 
     Returns:
         PIL Image of the chart.
@@ -71,14 +83,15 @@ def render_candlestick(
     if n == 0:
         return img
 
-    # Price range for normalization
-    all_low = df_window["low"].min()
-    all_high = df_window["high"].max()
+    # Price range for normalization (use overrides if provided)
+    all_low = price_low if price_low is not None else df_window["low"].min()
+    all_high = price_high if price_high is not None else df_window["high"].max()
 
-    # Candle width calculation
+    # Candle width calculation (use total_slots so both input/target match)
+    slots = total_slots or n
     chart_width = CANDLE_AREA_RIGHT - CANDLE_AREA_LEFT
-    candle_width = max(1, int(chart_width / n * 0.7))
-    gap = max(1, int(chart_width / n * 0.3))
+    candle_width = max(1, int(chart_width / slots * 0.7))
+    gap = max(1, int(chart_width / slots * 0.3))
     total_step = candle_width + gap
 
     for i, (_, row) in enumerate(df_window.iterrows()):
@@ -89,10 +102,10 @@ def render_candlestick(
         l = normalize_prices(np.array([row["low"]]), all_low, all_high)[0]
         c = normalize_prices(np.array([row["close"]]), all_low, all_high)[0]
 
-        y_open = price_to_y(o)
-        y_high = price_to_y(h)
-        y_low = price_to_y(l)
-        y_close = price_to_y(c)
+        y_open = clamp_y(price_to_y(o))
+        y_high = clamp_y(price_to_y(h))
+        y_low = clamp_y(price_to_y(l))
+        y_close = clamp_y(price_to_y(c))
 
         is_green = row["close"] >= row["open"]
         body_color = GREEN_CANDLE if is_green else RED_CANDLE
@@ -161,17 +174,28 @@ def render_dataset(
     for idx in tqdm(range(0, len(df) - window_size - future_candles, stride), desc="Rendering"):
         # Input: candles [idx : idx + window_size]
         input_window = df.iloc[idx : idx + window_size]
-        # Target: candles [idx + future_candles : idx + future_candles + window_size]
-        target_window = df.iloc[idx + future_candles : idx + future_candles + window_size]
+        # Target: input candles + future candles appended
+        target_window = df.iloc[idx : idx + window_size + future_candles]
 
-        # Signal: compare close at end of input vs end of target
+        # Signal: compare close at end of input vs last future candle
         current_close = input_window.iloc[-1]["close"]
         future_close = target_window.iloc[-1]["close"]
         signal, marker_color = compute_signal(current_close, future_close)
 
-        # Render images
-        input_img = render_candlestick(input_window, draw_marker=False)
-        target_img = render_candlestick(target_window, draw_marker=True, marker_color=marker_color)
+        # Shared Y-normalization based on input candles only
+        input_low = float(input_window["low"].min())
+        input_high = float(input_window["high"].max())
+        total_slots = window_size + future_candles
+
+        # Render images (input has black space on right, target fills it)
+        input_img = render_candlestick(
+            input_window, draw_marker=False,
+            total_slots=total_slots, price_low=input_low, price_high=input_high,
+        )
+        target_img = render_candlestick(
+            target_window, draw_marker=True, marker_color=marker_color,
+            total_slots=total_slots, price_low=input_low, price_high=input_high,
+        )
 
         # Get indicator values for prompt
         rsi_val = input_window.iloc[-1].get("rsi", 50.0)

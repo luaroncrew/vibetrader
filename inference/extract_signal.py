@@ -1,13 +1,14 @@
-"""Extract trading signal from generated chart images by reading candle colors.
+"""Extract trading signal from generated chart images by reading the marker square.
 
-Instead of relying on a small marker square (which the model often gets wrong),
-we analyse the rightmost candles in the generated chart. Green candles mean
-price went up, red candles mean price went down.
+Target chart images contain a 30x30 colored marker square in the bottom-right
+corner that encodes the trading signal:
+    Green (0, 255, 0)   -> BUY
+    Red   (255, 0, 0)   -> SELL
+    Gray  (128, 128, 128) -> HOLD
 
-Candle colors used in rendering (data/render_charts.py):
-    Green body  (0, 200, 0)   Green wick  (0, 160, 0)
-    Red body    (200, 0, 0)   Red wick    (160, 0, 0)
-    Background  (0, 0, 0)
+Constants match data/render_charts.py:
+    IMG_SIZE = 256, MARKER_SIZE = 30, MARKER_MARGIN = 5
+    Square region: pixels [221:251, 221:251]
 """
 
 from dataclasses import dataclass
@@ -17,86 +18,76 @@ from PIL import Image
 
 
 IMG_SIZE = 256
-CHART_LEFT = 10
-CHART_RIGHT = IMG_SIZE - 10
-CHART_TOP = 10
-CHART_BOTTOM = IMG_SIZE - 10
+MARKER_SIZE = 30
+MARKER_MARGIN = 5
 
-# Thresholds for classifying a pixel as green-ish or red-ish candle
-# A pixel is "green" if G channel dominates, "red" if R channel dominates.
-MIN_BRIGHTNESS = 60  # ignore near-black (background / wicks too dim)
+# Top-left corner of the marker square
+_MARKER_X0 = IMG_SIZE - MARKER_MARGIN - MARKER_SIZE  # 221
+_MARKER_Y0 = IMG_SIZE - MARKER_MARGIN - MARKER_SIZE  # 221
+
+# Known marker colors
+MARKER_GREEN = np.array([0, 255, 0], dtype=np.float32)
+MARKER_RED = np.array([255, 0, 0], dtype=np.float32)
+MARKER_GRAY = np.array([128, 128, 128], dtype=np.float32)
+
+_MARKERS = [
+    ("BUY", MARKER_GREEN),
+    ("SELL", MARKER_RED),
+    ("HOLD", MARKER_GRAY),
+]
 
 
 @dataclass
 class Signal:
     """Trading signal extracted from a chart image."""
-    action: str        # "BUY", "SELL", or "HOLD"
-    confidence: float  # 0.0 to 1.0
-    green_pct: float   # fraction of candle pixels that are green
-    red_pct: float     # fraction of candle pixels that are red
+    action: str                        # "BUY", "SELL", or "HOLD"
+    confidence: float                  # 0.0 to 1.0
+    avg_rgb: tuple[float, float, float]  # average RGB of the marker square
 
 
-def extract_signal(image: Image.Image, right_frac: float = 0.25) -> Signal:
-    """Read the signal from the rightmost candles of a generated chart.
+def extract_signal(image: Image.Image) -> Signal:
+    """Read the trading signal from the marker square of a generated chart.
 
-    Analyses the right portion of the chart area. Counts green vs red
-    candle pixels to determine the dominant direction.
+    Reads the 30x30 pixel region at the bottom-right corner, computes its
+    average RGB, and classifies by Euclidean distance to known marker colors.
 
     Args:
         image: Generated chart image (256x256).
-        right_frac: Fraction of chart width to analyse from the right
-                    (0.25 = last ~10 candles out of 40).
 
     Returns:
-        Signal with action, confidence, and green/red percentages.
+        Signal with action, confidence, and average RGB of the marker region.
     """
     img = image.convert("RGB").resize((IMG_SIZE, IMG_SIZE))
     arr = np.array(img, dtype=np.float32)
 
-    # Crop the right portion of the chart area
-    right_start = int(CHART_RIGHT - (CHART_RIGHT - CHART_LEFT) * right_frac)
-    region = arr[CHART_TOP:CHART_BOTTOM, right_start:CHART_RIGHT]
+    # Extract the marker square region
+    region = arr[_MARKER_Y0:_MARKER_Y0 + MARKER_SIZE,
+                 _MARKER_X0:_MARKER_X0 + MARKER_SIZE]
 
-    r, g, b = region[:, :, 0], region[:, :, 1], region[:, :, 2]
+    avg_rgb = region.mean(axis=(0, 1))  # shape (3,)
 
-    # A pixel is a candle pixel if it's bright enough (not background)
-    brightness = np.maximum(r, np.maximum(g, b))
-    is_candle = brightness >= MIN_BRIGHTNESS
+    # Compute Euclidean distance to each known marker color
+    distances = [(label, float(np.linalg.norm(avg_rgb - color)))
+                 for label, color in _MARKERS]
 
-    # Green pixel: G channel is the dominant and significantly > R
-    is_green = is_candle & (g > r * 1.5) & (g > b * 1.5)
-    # Red pixel: R channel is the dominant and significantly > G
-    is_red = is_candle & (r > g * 1.5) & (r > b * 1.5)
+    # Sort by distance (closest first)
+    distances.sort(key=lambda x: x[1])
+    best_label, best_dist = distances[0]
+    _, second_dist = distances[1]
 
-    n_green = int(is_green.sum())
-    n_red = int(is_red.sum())
-    n_total = n_green + n_red
-
-    if n_total == 0:
-        return Signal(action="HOLD", confidence=0.0, green_pct=0.0, red_pct=0.0)
-
-    green_pct = n_green / n_total
-    red_pct = n_red / n_total
-
-    # Decision thresholds
-    # Strong majority (>60%) of one color → BUY/SELL, otherwise HOLD
-    DOMINANCE_THRESHOLD = 0.60
-
-    if green_pct >= DOMINANCE_THRESHOLD:
-        action = "BUY"
-        confidence = green_pct
-    elif red_pct >= DOMINANCE_THRESHOLD:
-        action = "SELL"
-        confidence = red_pct
+    # Confidence: how much closer the best match is vs the second best.
+    # When best_dist == 0, confidence is 1.0; when best == second, confidence ~ 0.5.
+    if second_dist + best_dist == 0:
+        confidence = 0.0
     else:
-        action = "HOLD"
-        confidence = 1.0 - abs(green_pct - red_pct)  # more mixed = more confident HOLD
+        confidence = 1.0 - best_dist / (second_dist + best_dist)
 
     return Signal(
-        action=action,
+        action=best_label,
         confidence=round(confidence, 3),
-        green_pct=round(green_pct, 3),
-        red_pct=round(red_pct, 3),
+        avg_rgb=(round(float(avg_rgb[0]), 1),
+                 round(float(avg_rgb[1]), 1),
+                 round(float(avg_rgb[2]), 1)),
     )
 
 
@@ -110,12 +101,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Extract signal from chart image")
     parser.add_argument("image", help="Path to generated chart image")
-    parser.add_argument("--right-frac", type=float, default=0.25,
-                        help="Fraction of chart to analyse from right (default: 0.25)")
     args = parser.parse_args()
 
     signal = extract_signal_from_path(args.image)
     print(f"Action:     {signal.action}")
     print(f"Confidence: {signal.confidence}")
-    print(f"Green:      {signal.green_pct:.1%}")
-    print(f"Red:        {signal.red_pct:.1%}")
+    print(f"Avg RGB:    {signal.avg_rgb}")

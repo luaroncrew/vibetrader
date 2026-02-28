@@ -208,8 +208,7 @@ def generate_comparison(
                     "image": f"predictions/{pred_filename}",
                     "signal": signal.action,
                     "confidence": signal.confidence,
-                    "green_pct": signal.green_pct,
-                    "red_pct": signal.red_pct,
+                    "avg_rgb": signal.avg_rgb,
                 })
                 print(f"{signal.action} ({signal.confidence:.0%})")
 
