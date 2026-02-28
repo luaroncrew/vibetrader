@@ -26,6 +26,9 @@ venv/
 .vscode/
 .idea/
 
+# Claude
+.claude/
+
 # OS
 .DS_Store
 

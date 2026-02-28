@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VibeTrader - Chart Pairs</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a0f;
+  --surface: #14141f;
+  --surface2: #1c1c2e;
+  --border: #2a2a3e;
+  --text: #e0e0e8;
+  --text-dim: #8888a0;
+  --buy: #00e676;
+  --sell: #ff1744;
+  --hold: #ffc400;
+  --accent: #7c4dff;
+  --radius: 12px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Filter tabs */
+.filter-bar {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 0 16px;
+}
+.filter-bar button {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 6px 18px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-bar button:hover { border-color: var(--accent); color: var(--text); }
+.filter-bar button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.filter-bar button.active[data-signal="BUY"] { background: var(--buy); border-color: var(--buy); color: #000; }
+.filter-bar button.active[data-signal="SELL"] { background: var(--sell); border-color: var(--sell); color: #fff; }
+.filter-bar button.active[data-signal="HOLD"] { background: var(--hold); border-color: var(--hold); color: #000; }
+
+/* Viewer */
+.viewer {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px 30px;
+  gap: 16px;
+  min-height: 0;
+}
+
+.nav-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.nav-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.nav-btn:disabled { opacity: 0.2; cursor: default; }
+
+.pair-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  max-width: 1000px;
+  width: 100%;
+  transition: opacity 0.2s;
+}
+
+.pair-labels {
+  display: flex;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.pair-labels span {
+  flex: 1;
+  text-align: center;
+  padding: 8px 0;
+  background: var(--surface2);
+}
+.pair-labels span:first-child { border-right: 1px solid var(--border); }
+
+.pair-images {
+  display: flex;
+  gap: 2px;
+  background: #000;
+  aspect-ratio: 2 / 1;
+}
+.pair-images img {
+  width: 50%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #000;
+}
+
+.pair-meta {
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.badge-BUY { background: var(--buy); color: #000; }
+.badge-SELL { background: var(--sell); color: #fff; }
+.badge-HOLD { background: var(--hold); color: #000; }
+
+.stat {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+.stat b { color: var(--text); font-weight: 600; }
+
+.pair-meta .id-label {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.pair-prompt {
+  margin: 0 20px 14px;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  line-height: 1.5;
+}
+
+/* Counter */
+.counter {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  padding-bottom: 4px;
+}
+
+/* Keyboard hint */
+.hint {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  opacity: 0.5;
+  padding-bottom: 20px;
+}
+.hint kbd {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: inherit;
+  font-size: 0.68rem;
+}
+
+/* Loading */
+.loading {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+.loading .spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error-msg {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--sell);
+  font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .viewer { padding: 12px 8px 20px; gap: 8px; }
+  .nav-btn { width: 38px; height: 38px; font-size: 1rem; }
+  .pair-images { flex-direction: column; aspect-ratio: 1 / 2; }
+  .pair-images img { width: 100%; height: 50%; }
+  .pair-labels { flex-direction: column; }
+  .pair-labels span:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+}
+</style>
+</head>
+<body>
+
+
+<div class="filter-bar" id="filterBar">
+  <button class="active" data-signal="ALL">All</button>
+  <button data-signal="BUY">Buy</button>
+  <button data-signal="SELL">Sell</button>
+  <button data-signal="HOLD">Hold</button>
+</div>
+
+<div class="viewer" id="viewer">
+  <div class="loading" id="loadingMsg"><div class="spinner"></div>Loading metadata&hellip;</div>
+
+  <button class="nav-btn" id="prevBtn" title="Previous (Left Arrow)" style="display:none">&larr;</button>
+  <div class="pair-card" id="pairCard" style="display:none">
+    <div class="pair-labels"><span>Input</span><span>Target</span></div>
+    <div class="pair-images">
+      <img id="imgInput" alt="Input">
+      <img id="imgTarget" alt="Target">
+    </div>
+    <div class="pair-meta">
+      <span class="badge" id="metaBadge"></span>
+      <span class="stat" id="metaChange"></span>
+      <span class="stat" id="metaRsi"></span>
+      <span class="stat" id="metaMacd"></span>
+      <span class="id-label" id="metaId"></span>
+    </div>
+    <div class="pair-prompt" id="metaPrompt"></div>
+    <div class="counter" id="metaCounter"></div>
+  </div>
+  <button class="nav-btn" id="nextBtn" title="Next (Right Arrow)" style="display:none">&rarr;</button>
+</div>
+
+<div class="hint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys to navigate</div>
+
+<script>
+let allData = [];
+let filtered = [];
+let currentIndex = 0;
+
+const loadingMsg = document.getElementById('loadingMsg');
+const pairCard = document.getElementById('pairCard');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const imgInput = document.getElementById('imgInput');
+const imgTarget = document.getElementById('imgTarget');
+const metaBadge = document.getElementById('metaBadge');
+const metaChange = document.getElementById('metaChange');
+const metaRsi = document.getElementById('metaRsi');
+const metaMacd = document.getElementById('metaMacd');
+const metaId = document.getElementById('metaId');
+const metaPrompt = document.getElementById('metaPrompt');
+const metaCounter = document.getElementById('metaCounter');
+
+fetch('../data/rendered/metadata.json')
+  .then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  })
+  .then(data => {
+    allData = data;
+    applyFilter('ALL');
+  })
+  .catch(err => {
+    loadingMsg.innerHTML = `<span style="color:var(--sell)">Failed to load metadata: ${err.message}<br><br>
+      Serve from the project root:<br>
+      <code>python -m http.server 8000</code></span>`;
+  });
+
+
+// Filtering
+document.getElementById('filterBar').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  document.querySelectorAll('.filter-bar button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilter(btn.dataset.signal);
+});
+
+function applyFilter(signal) {
+  filtered = signal === 'ALL' ? allData : allData.filter(d => d.signal === signal);
+  currentIndex = 0;
+  render();
+}
+
+function go(delta) {
+  const next = currentIndex + delta;
+  if (next < 0 || next >= filtered.length) return;
+  currentIndex = next;
+  render();
+}
+
+function render() {
+  if (filtered.length === 0) {
+    loadingMsg.style.display = '';
+    loadingMsg.innerHTML = 'No pairs found for this filter.';
+    pairCard.style.display = 'none';
+    prevBtn.style.display = 'none';
+    nextBtn.style.display = 'none';
+    return;
+  }
+
+  loadingMsg.style.display = 'none';
+  pairCard.style.display = '';
+  prevBtn.style.display = '';
+  nextBtn.style.display = '';
+
+  const d = filtered[currentIndex];
+
+  imgInput.src = `../data/rendered/input/${d.id}.png`;
+  imgTarget.src = `../data/rendered/target/${d.id}.png`;
+
+  metaBadge.className = `badge badge-${d.signal}`;
+  metaBadge.textContent = d.signal;
+  metaChange.innerHTML = `<b>${(d.pct_change * 100).toFixed(2)}%</b> change`;
+  metaRsi.innerHTML = `RSI <b>${d.rsi}</b>`;
+  metaMacd.innerHTML = `MACD <b>${d.macd}</b>`;
+  metaId.textContent = `#${d.id}`;
+  metaPrompt.textContent = d.prompt;
+  metaCounter.textContent = `${currentIndex + 1} / ${filtered.length}`;
+
+  prevBtn.disabled = currentIndex === 0;
+  nextBtn.disabled = currentIndex >= filtered.length - 1;
+}
+
+prevBtn.addEventListener('click', () => go(-1));
+nextBtn.addEventListener('click', () => go(1));
+
+// Keyboard navigation
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') go(-1);
+  if (e.key === 'ArrowRight') go(1);
+});
+</script>
+</body>
+</html>
