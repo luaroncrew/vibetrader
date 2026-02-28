@@ -51,6 +51,8 @@ fi
 
 # W&B project
 export WANDB_PROJECT="vibetrader"
+export WANDB_RESUME="allow"
+export WANDB_RUN_ID="pwalrpwa"
 
 accelerate launch "$TRAIN_SCRIPT" \
     --pretrained_model_name_or_path="stable-diffusion-v1-5/stable-diffusion-v1-5" \
@@ -68,7 +70,8 @@ accelerate launch "$TRAIN_SCRIPT" \
     --lr_warmup_steps=100 \
     --mixed_precision="$MIXED_PRECISION" \
     --report_to=wandb \
-    --checkpointing_steps=500 \
+    --checkpointing_steps=250 \
     --output_dir="${PROJECT_DIR}/checkpoints" \
     --seed=42 \
+    --resume_from_checkpoint="latest" \
     $EXTRA_ARGS

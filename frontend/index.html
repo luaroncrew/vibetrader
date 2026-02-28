@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VibeTrader - Chart Pairs</title>
+<title>VibeTrader</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -220,7 +220,159 @@ body {
   font-size: 0.9rem;
 }
 
+/* View tabs */
+.view-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px 16px 0;
+}
+.view-tabs button {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 8px 24px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.view-tabs button:hover { border-color: var(--accent); color: var(--text); }
+.view-tabs button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* Comparison view */
+.compare-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px 30px;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.compare-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.compare-header .checkpoint-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.accuracy-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  margin-bottom: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+.accuracy-bar b { color: var(--text); font-weight: 600; }
+
+.triplet-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.triplet-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.triplet-labels {
+  display: flex;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.triplet-labels span {
+  flex: 1;
+  text-align: center;
+  padding: 6px 0;
+  background: var(--surface2);
+  border-right: 1px solid var(--border);
+}
+.triplet-labels span:last-child { border-right: none; }
+
+.triplet-images {
+  display: flex;
+  gap: 2px;
+  background: #000;
+  aspect-ratio: 3 / 1;
+}
+.triplet-images img {
+  width: 33.333%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #000;
+  cursor: pointer;
+}
+
+.triplet-meta {
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.triplet-meta .pred-result {
+  margin-left: auto;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.triplet-meta .pred-result.correct { color: var(--buy); }
+.triplet-meta .pred-result.wrong { color: var(--sell); }
+
+.confidence {
+  font-size: 0.72rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--text-dim);
+}
+
+/* Image modal */
+.image-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  cursor: pointer;
+}
+.image-modal img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
 /* Responsive */
+@media (max-width: 700px) {
+  .triplet-images { flex-direction: column; aspect-ratio: 1 / 3; }
+  .triplet-images img { width: 100%; height: 33.333%; }
+  .triplet-labels { flex-direction: column; }
+  .triplet-labels span { border-right: none; border-bottom: 1px solid var(--border); }
+  .triplet-labels span:last-child { border-bottom: none; }
+}
 @media (max-width: 600px) {
   .viewer { padding: 12px 8px 20px; gap: 8px; }
   .nav-btn { width: 38px; height: 38px; font-size: 1rem; }
@@ -233,6 +385,11 @@ body {
 </head>
 <body>
 
+
+<div class="view-tabs" id="viewTabs">
+  <button class="active" data-view="pairs">Chart Pairs</button>
+  <button data-view="compare">Model Comparison</button>
+</div>
 
 <div class="filter-bar" id="filterBar">
   <button class="active" data-signal="ALL">All</button>
@@ -264,7 +421,22 @@ body {
   <button class="nav-btn" id="nextBtn" title="Next (Right Arrow)" style="display:none">&rarr;</button>
 </div>
 
-<div class="hint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys to navigate</div>
+<div class="hint" id="pairsHint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys to navigate</div>
+
+<div class="compare-view" id="compareView" style="display:none">
+  <div class="compare-header">
+    <button class="nav-btn" id="cmpPrevBtn" title="Previous checkpoint">&larr;</button>
+    <span class="checkpoint-name" id="cmpCheckpointName"></span>
+    <button class="nav-btn" id="cmpNextBtn" title="Next checkpoint">&rarr;</button>
+  </div>
+  <div class="accuracy-bar" id="cmpAccuracy"></div>
+  <div class="triplet-grid" id="cmpGrid"></div>
+  <div class="hint" style="margin-top:16px"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch checkpoints</div>
+</div>
+
+<div class="image-modal" id="imageModal" style="display:none">
+  <img id="modalImg" alt="Zoomed">
+</div>
 
 <script>
 let allData = [];
@@ -361,9 +533,179 @@ nextBtn.addEventListener('click', () => go(1));
 
 // Keyboard navigation
 document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowLeft') go(-1);
-  if (e.key === 'ArrowRight') go(1);
+  if (e.key === 'ArrowLeft') {
+    if (activeView === 'pairs') go(-1);
+    else cmpGo(-1);
+  }
+  if (e.key === 'ArrowRight') {
+    if (activeView === 'pairs') go(1);
+    else cmpGo(1);
+  }
+  if (e.key === 'Escape') closeModal();
 });
+
+// ======================
+// View tabs
+// ======================
+let activeView = 'pairs';
+const viewTabs = document.getElementById('viewTabs');
+const filterBar = document.getElementById('filterBar');
+const viewer = document.getElementById('viewer');
+const pairsHint = document.getElementById('pairsHint');
+const compareView = document.getElementById('compareView');
+
+viewTabs.addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  viewTabs.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  switchView(btn.dataset.view);
+});
+
+function switchView(view) {
+  activeView = view;
+  if (view === 'pairs') {
+    filterBar.style.display = '';
+    viewer.style.display = '';
+    pairsHint.style.display = '';
+    compareView.style.display = 'none';
+  } else {
+    filterBar.style.display = 'none';
+    viewer.style.display = 'none';
+    pairsHint.style.display = 'none';
+    compareView.style.display = '';
+    if (!cmpData) fetchComparison();
+  }
+}
+
+// ======================
+// Comparison view
+// ======================
+let cmpData = null;
+let cmpModelIndex = 0;  // which checkpoint we're viewing
+
+const cmpPrevBtn = document.getElementById('cmpPrevBtn');
+const cmpNextBtn = document.getElementById('cmpNextBtn');
+const cmpCheckpointName = document.getElementById('cmpCheckpointName');
+const cmpGrid = document.getElementById('cmpGrid');
+const cmpAccuracy = document.getElementById('cmpAccuracy');
+
+cmpPrevBtn.addEventListener('click', () => cmpGo(-1));
+cmpNextBtn.addEventListener('click', () => cmpGo(1));
+
+function cmpGo(delta) {
+  if (!cmpData) return;
+  const next = cmpModelIndex + delta;
+  if (next < 0 || next >= cmpData.models.length) return;
+  cmpModelIndex = next;
+  renderComparison();
+}
+
+function fetchComparison() {
+  cmpGrid.innerHTML = '<div class="loading"><div class="spinner"></div>Loading comparison data&hellip;</div>';
+  fetch('../outputs/comparisons/comparison.json')
+    .then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })
+    .then(data => {
+      cmpData = data;
+      cmpModelIndex = 0;
+      renderComparison();
+    })
+    .catch(err => {
+      cmpGrid.innerHTML = `<div class="error-msg">Failed to load comparison data: ${err.message}<br><br>
+        Generate it first:<br>
+        <code>python -m inference.generate_comparison --max-samples 10 --device mps</code></div>`;
+    });
+}
+
+function renderComparison() {
+  if (!cmpData || cmpData.models.length === 0) return;
+
+  const model = cmpData.models[cmpModelIndex];
+
+  // Checkpoint nav
+  cmpCheckpointName.textContent = model.name;
+  cmpPrevBtn.disabled = cmpModelIndex === 0;
+  cmpNextBtn.disabled = cmpModelIndex >= cmpData.models.length - 1;
+
+  // Hide nav arrows if only one checkpoint
+  const showNav = cmpData.models.length > 1;
+  cmpPrevBtn.style.display = showNav ? '' : 'none';
+  cmpNextBtn.style.display = showNav ? '' : 'none';
+
+  // Accuracy for this checkpoint
+  let correct = 0, total = 0;
+  for (let i = 0; i < cmpData.samples.length; i++) {
+    const pred = model.predictions[i];
+    if (!pred) continue;
+    total++;
+    if (pred.signal === cmpData.samples[i].ground_truth) correct++;
+  }
+  const accPct = total > 0 ? ((correct / total) * 100).toFixed(0) : '—';
+  cmpAccuracy.innerHTML = `Accuracy: <b>${correct}</b> / ${total} (<b>${accPct}%</b>)`;
+
+  // Build triplet rows
+  let html = '';
+  for (let i = 0; i < cmpData.samples.length; i++) {
+    const sample = cmpData.samples[i];
+    const pred = model.predictions[i];
+
+    const predSignal = pred ? pred.signal : '—';
+    const predConf = pred ? `${(pred.confidence * 100).toFixed(0)}%` : '';
+    const isCorrect = pred && pred.signal === sample.ground_truth;
+    const resultClass = pred ? (isCorrect ? 'correct' : 'wrong') : '';
+    const resultText = pred ? (isCorrect ? 'Correct' : 'Wrong') : 'N/A';
+    const predImgSrc = pred
+      ? `../outputs/comparisons/${pred.image}`
+      : '';
+
+    html += `
+      <div class="triplet-row">
+        <div class="triplet-labels">
+          <span>Input</span>
+          <span>Target (${sample.ground_truth})</span>
+          <span>Prediction</span>
+        </div>
+        <div class="triplet-images">
+          <img src="../outputs/comparisons/inputs/${sample.id}.png" alt="Input" onclick="openModal(this.src)">
+          <img src="../outputs/comparisons/targets/${sample.id}.png" alt="Target" onclick="openModal(this.src)">
+          ${pred
+            ? `<img src="${predImgSrc}" alt="Prediction" onclick="openModal(this.src)">`
+            : `<div style="width:33.333%;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:0.8rem">No prediction</div>`
+          }
+        </div>
+        <div class="triplet-meta">
+          <span class="badge badge-${sample.ground_truth}">${sample.ground_truth}</span>
+          <span class="stat"><b>${(sample.pct_change * 100).toFixed(2)}%</b></span>
+          <span class="stat">RSI <b>${sample.rsi}</b></span>
+          ${pred ? `<span class="badge badge-${predSignal}">${predSignal}</span><span class="confidence">${predConf}</span><span class="confidence" style="opacity:0.6">${(pred.green_pct*100).toFixed(0)}%g / ${(pred.red_pct*100).toFixed(0)}%r</span>` : ''}
+          <span class="pred-result ${resultClass}">${resultText}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  cmpGrid.innerHTML = html;
+}
+
+// ======================
+// Image modal
+// ======================
+const imageModal = document.getElementById('imageModal');
+const modalImg = document.getElementById('modalImg');
+
+function openModal(src) {
+  modalImg.src = src;
+  imageModal.style.display = '';
+}
+
+function closeModal() {
+  imageModal.style.display = 'none';
+}
+
+imageModal.addEventListener('click', closeModal);
 </script>
 </body>
 </html>

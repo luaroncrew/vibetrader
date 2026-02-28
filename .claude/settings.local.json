@@ -6,7 +6,8 @@
       "WebSearch",
       "WebFetch(domain:arxiv.org)",
       "WebFetch(domain:docs.wandb.ai)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(grep:*)"
     ]
   }
 }
