@@ -1,0 +1,33 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Data artifacts
+data/btc_usdt_4h.csv
+data/rendered/
+data/dataset/
+
+# Model checkpoints
+checkpoints/
+diffusers/
+
+# Outputs
+outputs/
+
+# Environment
+.env
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# W&B
+wandb/
