@@ -7,7 +7,8 @@
       "WebFetch(domain:arxiv.org)",
       "WebFetch(domain:docs.wandb.ai)",
       "Bash(python3:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(ssh mistral-hack:*)"
     ]
   }
 }

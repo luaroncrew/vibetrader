@@ -365,6 +365,139 @@ body {
   border-radius: 8px;
 }
 
+/* Backtest view */
+.backtest-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px 30px;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.bt-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.bt-metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  text-align: center;
+}
+.bt-metric-card .label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.bt-metric-card .value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.bt-metric-card .value.positive { color: var(--buy); }
+.bt-metric-card .value.negative { color: var(--sell); }
+.bt-metric-card .value.neutral { color: var(--hold); }
+
+.bt-chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+.bt-chart-card .chart-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.bt-chart-card canvas {
+  width: 100%;
+  height: 280px;
+  display: block;
+}
+
+.bt-legend {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 10px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+.bt-legend span::before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 3px;
+  margin-right: 6px;
+  vertical-align: middle;
+  border-radius: 2px;
+}
+.bt-legend .leg-strategy::before { background: var(--buy); }
+.bt-legend .leg-buyhold::before { background: var(--sell); }
+
+.bt-table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.bt-table-card .table-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 14px 20px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+
+.bt-table-wrap {
+  max-height: 400px;
+  overflow-y: auto;
+}
+.bt-table-wrap::-webkit-scrollbar { width: 6px; }
+.bt-table-wrap::-webkit-scrollbar-track { background: var(--surface); }
+.bt-table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.bt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.bt-table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface2);
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+}
+.bt-table td {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.bt-table tr:hover td { background: var(--surface2); }
+.bt-table .correct-cell { color: var(--buy); }
+.bt-table .wrong-cell { color: var(--sell); }
+
 /* Responsive */
 @media (max-width: 700px) {
   .triplet-images { flex-direction: column; aspect-ratio: 1 / 3; }
@@ -389,6 +522,7 @@ body {
 <div class="view-tabs" id="viewTabs">
   <button class="active" data-view="pairs">Chart Pairs</button>
   <button data-view="compare">Model Comparison</button>
+  <button data-view="backtest">Backtest</button>
 </div>
 
 <div class="filter-bar" id="filterBar">
@@ -432,6 +566,29 @@ body {
   <div class="accuracy-bar" id="cmpAccuracy"></div>
   <div class="triplet-grid" id="cmpGrid"></div>
   <div class="hint" style="margin-top:16px"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch checkpoints</div>
+</div>
+
+<div class="backtest-view" id="backtestView" style="display:none">
+  <div class="bt-metrics" id="btMetrics"></div>
+  <div class="bt-chart-card">
+    <div class="chart-title">Cumulative Returns</div>
+    <canvas id="btCanvas"></canvas>
+    <div class="bt-legend">
+      <span class="leg-strategy">Model Strategy</span>
+      <span class="leg-buyhold">Buy & Hold</span>
+    </div>
+  </div>
+  <div class="bt-table-card">
+    <div class="table-title">Trade Log</div>
+    <div class="bt-table-wrap">
+      <table class="bt-table" id="btTable">
+        <thead><tr>
+          <th>#</th><th>Predicted</th><th>Actual</th><th>Conf</th><th>Price %</th><th>Result</th><th>Return</th>
+        </tr></thead>
+        <tbody id="btTbody"></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <div class="image-modal" id="imageModal" style="display:none">
@@ -562,19 +719,26 @@ viewTabs.addEventListener('click', e => {
   switchView(btn.dataset.view);
 });
 
+const backtestView = document.getElementById('backtestView');
+
 function switchView(view) {
   activeView = view;
+  filterBar.style.display = 'none';
+  viewer.style.display = 'none';
+  pairsHint.style.display = 'none';
+  compareView.style.display = 'none';
+  backtestView.style.display = 'none';
+
   if (view === 'pairs') {
     filterBar.style.display = '';
     viewer.style.display = '';
     pairsHint.style.display = '';
-    compareView.style.display = 'none';
-  } else {
-    filterBar.style.display = 'none';
-    viewer.style.display = 'none';
-    pairsHint.style.display = 'none';
+  } else if (view === 'compare') {
     compareView.style.display = '';
     if (!cmpData) fetchComparison();
+  } else if (view === 'backtest') {
+    backtestView.style.display = '';
+    if (!btLoaded) fetchBacktest();
   }
 }
 
@@ -646,9 +810,15 @@ function renderComparison() {
   const accPct = total > 0 ? ((correct / total) * 100).toFixed(0) : '—';
   cmpAccuracy.innerHTML = `Accuracy: <b>${correct}</b> / ${total} (<b>${accPct}%</b>)`;
 
+  // Pick 3 evenly spaced samples to display
+  const totalSamples = cmpData.samples.length;
+  const displayIndices = totalSamples <= 3
+    ? Array.from({length: totalSamples}, (_, i) => i)
+    : [0, Math.floor(totalSamples / 2), totalSamples - 1];
+
   // Build triplet rows
   let html = '';
-  for (let i = 0; i < cmpData.samples.length; i++) {
+  for (const i of displayIndices) {
     const sample = cmpData.samples[i];
     const pred = model.predictions[i];
 
@@ -688,6 +858,207 @@ function renderComparison() {
   }
 
   cmpGrid.innerHTML = html;
+}
+
+// ======================
+// Backtest view
+// ======================
+let btLoaded = false;
+
+function fetchBacktest() {
+  const btMetrics = document.getElementById('btMetrics');
+  btMetrics.innerHTML = '<div class="loading"><div class="spinner"></div>Loading backtest data&hellip;</div>';
+
+  Promise.all([
+    fetch('../outputs/backtest_250/backtest_metrics.json').then(r => {
+      if (!r.ok) throw new Error(`Metrics HTTP ${r.status}`);
+      return r.json();
+    }),
+    fetch('../outputs/backtest_250/backtest_results.csv').then(r => {
+      if (!r.ok) throw new Error(`Results HTTP ${r.status}`);
+      return r.text();
+    })
+  ])
+  .then(([metrics, csvText]) => {
+    btLoaded = true;
+    const trades = parseCSV(csvText);
+    renderBacktest(metrics, trades);
+  })
+  .catch(err => {
+    btMetrics.innerHTML = `<div class="error-msg" style="grid-column:1/-1">Failed to load backtest data: ${err.message}<br><br>
+      Run the backtest first:<br>
+      <code>python -m bot.backtest</code></div>`;
+  });
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',');
+  return lines.slice(1).map(line => {
+    const vals = line.split(',');
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = vals[i]);
+    obj.confidence = parseFloat(obj.confidence);
+    obj.pct_change = parseFloat(obj.pct_change);
+    obj.strategy_return = parseFloat(obj.strategy_return);
+    obj.correct = obj.correct === 'True';
+    obj.idx = parseInt(obj.idx);
+    return obj;
+  });
+}
+
+function renderBacktest(metrics, trades) {
+  const btMetrics = document.getElementById('btMetrics');
+
+  const stratRet = (metrics.strategy_return * 100).toFixed(1);
+  const bhRet = (metrics.buy_hold_return * 100).toFixed(1);
+  const acc = (metrics.accuracy * 100).toFixed(1);
+  const buyAcc = (metrics.buy_accuracy * 100).toFixed(1);
+  const sellAcc = (metrics.sell_accuracy * 100).toFixed(1);
+
+  btMetrics.innerHTML = `
+    <div class="bt-metric-card">
+      <div class="label">Strategy Return</div>
+      <div class="value ${metrics.strategy_return >= 0 ? 'positive' : 'negative'}">+${stratRet}%</div>
+    </div>
+    <div class="bt-metric-card">
+      <div class="label">Buy & Hold</div>
+      <div class="value ${metrics.buy_hold_return >= 0 ? 'positive' : 'negative'}">${bhRet}%</div>
+    </div>
+    <div class="bt-metric-card">
+      <div class="label">Accuracy</div>
+      <div class="value neutral">${acc}%</div>
+    </div>
+    <div class="bt-metric-card">
+      <div class="label">Buy Accuracy</div>
+      <div class="value neutral">${buyAcc}%</div>
+    </div>
+    <div class="bt-metric-card">
+      <div class="label">Sell Accuracy</div>
+      <div class="value neutral">${sellAcc}%</div>
+    </div>
+    <div class="bt-metric-card">
+      <div class="label">Samples</div>
+      <div class="value" style="color:var(--text)">${metrics.n_samples}</div>
+    </div>
+  `;
+
+  drawEquityCurve(trades);
+  renderTradeTable(trades);
+}
+
+function drawEquityCurve(trades) {
+  const canvas = document.getElementById('btCanvas');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const W = rect.width;
+  const H = rect.height;
+
+  // Compute cumulative returns
+  let cumStrategy = [0];
+  let cumBuyHold = [0];
+  for (let i = 0; i < trades.length; i++) {
+    cumStrategy.push(cumStrategy[i] + trades[i].strategy_return);
+    cumBuyHold.push(cumBuyHold[i] + trades[i].pct_change);
+  }
+
+  const allVals = [...cumStrategy, ...cumBuyHold];
+  const minVal = Math.min(...allVals);
+  const maxVal = Math.max(...allVals);
+  const range = maxVal - minVal || 1;
+
+  const padL = 55, padR = 16, padT = 16, padB = 30;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+
+  function toX(i) { return padL + (i / (cumStrategy.length - 1)) * chartW; }
+  function toY(v) { return padT + chartH - ((v - minVal) / range) * chartH; }
+
+  // Background
+  ctx.fillStyle = '#14141f';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid lines
+  ctx.strokeStyle = '#2a2a3e';
+  ctx.lineWidth = 0.5;
+  const nGrid = 5;
+  for (let i = 0; i <= nGrid; i++) {
+    const v = minVal + (range * i / nGrid);
+    const y = toY(v);
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(W - padR, y);
+    ctx.stroke();
+
+    ctx.fillStyle = '#8888a0';
+    ctx.font = '11px -apple-system, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText((v * 100).toFixed(0) + '%', padL - 8, y + 4);
+  }
+
+  // Zero line
+  if (minVal < 0 && maxVal > 0) {
+    ctx.strokeStyle = '#4a4a5e';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(padL, toY(0));
+    ctx.lineTo(W - padR, toY(0));
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // X-axis labels
+  ctx.fillStyle = '#8888a0';
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  const xTicks = 5;
+  for (let i = 0; i <= xTicks; i++) {
+    const idx = Math.round((cumStrategy.length - 1) * i / xTicks);
+    ctx.fillText(idx, toX(idx), H - 8);
+  }
+
+  // Draw lines
+  function drawLine(data, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    for (let i = 0; i < data.length; i++) {
+      const x = toX(i);
+      const y = toY(data[i]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  drawLine(cumBuyHold, '#ff1744');
+  drawLine(cumStrategy, '#00e676');
+}
+
+function renderTradeTable(trades) {
+  const tbody = document.getElementById('btTbody');
+  let html = '';
+  trades.forEach((t, i) => {
+    const retPct = (t.strategy_return * 100).toFixed(2);
+    const pctChg = (t.pct_change * 100).toFixed(2);
+    const cls = t.correct ? 'correct-cell' : 'wrong-cell';
+    html += `<tr>
+      <td>${i + 1}</td>
+      <td><span class="badge badge-${t.predicted}" style="font-size:0.68rem;padding:2px 8px">${t.predicted}</span></td>
+      <td><span class="badge badge-${t.actual}" style="font-size:0.68rem;padding:2px 8px">${t.actual}</span></td>
+      <td>${(t.confidence * 100).toFixed(0)}%</td>
+      <td style="color:${t.pct_change >= 0 ? 'var(--buy)' : 'var(--sell)'}">${pctChg}%</td>
+      <td class="${cls}">${t.correct ? 'Correct' : 'Wrong'}</td>
+      <td style="color:${t.strategy_return >= 0 ? 'var(--buy)' : 'var(--sell)'}">${t.strategy_return >= 0 ? '+' : ''}${retPct}%</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
 }
 
 // ======================
