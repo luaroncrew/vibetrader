@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from data.render_charts import render_candlestick, compute_signal
 from inference.predict import load_pipeline, predict
 from inference.extract_signal import extract_signal
+from inference.extract_signal_mistral import extract_signal_mistral
 
 
 def run_backtest(
@@ -32,6 +33,7 @@ def run_backtest(
     max_samples: int = 100,
     device: str = "auto",
     log_wandb: bool = False,
+    use_mistral: bool = False,
 ):
     """Run backtest on held-out historical data.
 
@@ -45,6 +47,7 @@ def run_backtest(
         max_samples: Maximum number of test samples (for speed).
         device: Inference device.
         log_wandb: Log results to W&B.
+        use_mistral: Use Mistral Pixtral for signal extraction instead of pixel counting.
     """
     df = pd.read_csv(csv_path)
     df["timestamp"] = pd.to_datetime(df["timestamp"])
@@ -97,7 +100,11 @@ def run_backtest(
 
         # Predict
         generated = predict(pipe, input_img, prompt)
-        signal = extract_signal(generated)
+
+        if use_mistral:
+            signal = extract_signal_mistral(input_img, generated)
+        else:
+            signal = extract_signal(generated)
 
         correct = signal.action == actual_signal
         results.append({
@@ -186,12 +193,14 @@ def main():
     parser.add_argument("--max-samples", type=int, default=100)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--wandb", action="store_true")
+    parser.add_argument("--mistral", action="store_true", help="Use Mistral Pixtral for signal extraction")
     args = parser.parse_args()
 
     run_backtest(
         args.csv, args.checkpoint, args.output,
         args.window, args.future, args.test_months,
         args.max_samples, args.device, args.wandb,
+        args.mistral,
     )
 
 
