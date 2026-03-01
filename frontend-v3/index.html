@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VibeTrader - Predict</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a0f;
+  --surface: #14141f;
+  --surface2: #1c1c2e;
+  --border: #2a2a3e;
+  --text: #e0e0e8;
+  --text-dim: #8888a0;
+  --buy: #00e676;
+  --sell: #ff1744;
+  --hold: #ffc400;
+  --accent: #7c4dff;
+  --radius: 12px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  padding: 32px 16px 0;
+}
+.header h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.header h1 span { color: var(--accent); }
+.header p {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+
+/* Showcase grid — 5 cards in a row */
+.showcase {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  padding: 28px 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+}
+
+.showcase-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 180px;
+  flex-shrink: 0;
+}
+.showcase-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 24px rgba(124, 77, 255, 0.2);
+}
+.showcase-card img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  display: block;
+  background: #000;
+}
+.showcase-card .card-info {
+  padding: 8px 10px;
+  text-align: center;
+}
+.showcase-card .card-id {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+/* Badge */
+.badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.badge-BUY { background: var(--buy); color: #000; }
+.badge-SELL { background: var(--sell); color: #fff; }
+.badge-HOLD { background: var(--hold); color: #000; }
+.badge-lg {
+  font-size: 1rem;
+  padding: 6px 20px;
+  border-radius: 14px;
+}
+
+/* Loading state */
+.loading-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.loading-view .preview-img {
+  width: 256px;
+  height: 256px;
+  object-fit: contain;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: #000;
+  margin-bottom: 28px;
+}
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-view .loading-text {
+  font-size: 0.92rem;
+  color: var(--text-dim);
+  text-align: center;
+}
+.loading-view .loading-sub {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  opacity: 0.5;
+  margin-top: 6px;
+}
+
+/* Result view */
+.result-view {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+}
+.result-back {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 20px;
+  display: inline-block;
+}
+.result-back:hover { border-color: var(--accent); }
+
+.result-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.result-labels {
+  display: flex;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.result-labels span {
+  flex: 1;
+  text-align: center;
+  padding: 8px 0;
+  background: var(--surface2);
+  border-right: 1px solid var(--border);
+}
+.result-labels span:last-child { border-right: none; }
+
+.result-images {
+  display: flex;
+  gap: 2px;
+  background: #000;
+  aspect-ratio: 3 / 1;
+}
+.result-images img {
+  width: 33.333%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #000;
+  cursor: pointer;
+}
+
+.result-meta {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.stat {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+.stat b { color: var(--text); font-weight: 600; }
+
+.result-prompt {
+  margin: 0 20px 16px;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  line-height: 1.5;
+}
+
+.reasoning-box {
+  margin: 0 20px 16px;
+  padding: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.reasoning-box .reasoning-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.reasoning-box .reasoning-text {
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.match-indicator {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: 14px;
+  margin-left: auto;
+}
+.match-correct {
+  background: rgba(0, 230, 118, 0.15);
+  color: var(--buy);
+  border: 1px solid rgba(0, 230, 118, 0.3);
+}
+.match-wrong {
+  background: rgba(255, 23, 68, 0.15);
+  color: var(--sell);
+  border: 1px solid rgba(255, 23, 68, 0.3);
+}
+
+
+/* Image modal */
+.image-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  cursor: pointer;
+}
+.image-modal img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+/* Center loading */
+.center-loading {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+.center-loading .spinner { margin: 0 auto 16px; }
+
+/* Responsive */
+@media (max-width: 700px) {
+  .showcase { gap: 8px; }
+  .showcase-card { width: 140px; }
+  .result-images { flex-direction: column; aspect-ratio: 1 / 3; }
+  .result-images img { width: 100%; height: 33.333%; }
+  .result-labels { flex-direction: column; }
+  .result-labels span { border-right: none; border-bottom: 1px solid var(--border); }
+  .result-labels span:last-child { border-bottom: none; }
+}
+</style>
+</head>
+<body>
+
+
+<!-- Selection View -->
+<div id="selectionView">
+  <div class="showcase" id="showcase">
+    <div class="center-loading"><div class="spinner"></div>Loading charts&hellip;</div>
+  </div>
+</div>
+
+<!-- Loading View -->
+<div id="loadingView" style="display:none">
+  <div class="loading-view">
+    <img class="preview-img" id="loadingPreview" alt="Selected chart">
+    <div class="spinner"></div>
+    <div class="loading-text">Running diffusion inference&hellip;</div>
+    <div class="loading-sub">This takes 30-60 seconds</div>
+  </div>
+</div>
+
+<!-- Result View -->
+<div id="resultView" style="display:none">
+  <div class="result-view">
+    <button class="result-back" id="backBtn">&larr; Back to Selection</button>
+    <div class="result-card">
+      <div class="result-labels">
+        <span>Input Chart</span>
+        <span>AI Prediction</span>
+        <span>Actual Target</span>
+      </div>
+      <div class="result-images">
+        <img id="resultInput" alt="Input" onclick="openModal(this.src)">
+        <img id="resultGenerated" alt="Generated" onclick="openModal(this.src)">
+        <img id="resultTarget" alt="Target" onclick="openModal(this.src)">
+      </div>
+      <div class="result-meta">
+        <span class="badge badge-lg" id="resultBadge"></span>
+        <span class="stat" id="resultConfidence"></span>
+        <span class="stat" id="resultPixels"></span>
+        <span class="stat" id="resultGroundTruth"></span>
+        <span class="match-indicator" id="resultMatch"></span>
+      </div>
+      <div class="result-prompt" id="resultPrompt"></div>
+      <div class="reasoning-box" id="reasoningBox" style="display:none">
+        <div class="reasoning-label">Mistral Pixtral Reasoning</div>
+        <div class="reasoning-text" id="reasoningText"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Image Modal -->
+<div class="image-modal" id="imageModal" style="display:none">
+  <img id="modalImg" alt="Zoomed">
+</div>
+
+<script>
+const selectionView = document.getElementById('selectionView');
+const loadingView = document.getElementById('loadingView');
+const resultView = document.getElementById('resultView');
+const showcase = document.getElementById('showcase');
+
+// ---------------------------------------------------------------------------
+// Load showcase charts
+// ---------------------------------------------------------------------------
+
+fetch('/api/showcase')
+  .then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  })
+  .then(data => renderShowcase(data.items))
+  .catch(err => {
+    showcase.innerHTML = `<div class="center-loading" style="color:var(--sell)">Failed to load: ${err.message}</div>`;
+  });
+
+function renderShowcase(items) {
+  let html = '';
+  for (const item of items) {
+    html += `
+      <div class="showcase-card" onclick="selectChart('${item.id}')">
+        <img src="/api/images/input/${item.id}.png" alt="Chart ${item.id}">
+        <div class="card-info">
+          <span class="card-id">#${item.id}</span>
+        </div>
+      </div>
+    `;
+  }
+  showcase.innerHTML = html;
+}
+
+// ---------------------------------------------------------------------------
+// Prediction
+// ---------------------------------------------------------------------------
+
+function selectChart(imageId) {
+  selectionView.style.display = 'none';
+  resultView.style.display = 'none';
+  loadingView.style.display = '';
+
+  document.getElementById('loadingPreview').src = `/api/images/input/${imageId}.png`;
+
+  fetch('/api/predict', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image_id: imageId }),
+  })
+    .then(r => {
+      if (!r.ok) return r.json().then(d => { throw new Error(d.error || `HTTP ${r.status}`); });
+      return r.json();
+    })
+    .then(data => showResult(data))
+    .catch(err => {
+      alert(`Prediction failed: ${err.message}`);
+      showSelection();
+    });
+}
+
+function showResult(data) {
+  loadingView.style.display = 'none';
+  resultView.style.display = '';
+
+  document.getElementById('resultInput').src = `data:image/png;base64,${data.input_image}`;
+  document.getElementById('resultGenerated').src = `data:image/png;base64,${data.generated_image}`;
+
+  // Target image
+  const targetImg = document.getElementById('resultTarget');
+  if (data.target_image) {
+    targetImg.src = `data:image/png;base64,${data.target_image}`;
+  } else {
+    targetImg.src = `/api/images/target/${data.image_id}.png`;
+  }
+
+  // Signal badge
+  const badge = document.getElementById('resultBadge');
+  badge.className = `badge badge-lg badge-${data.signal.action}`;
+  badge.textContent = data.signal.action;
+
+  document.getElementById('resultConfidence').innerHTML =
+    `Confidence <b>${(data.signal.confidence * 100).toFixed(0)}%</b>`;
+
+  // Pixel info or reasoning
+  const pixelsEl = document.getElementById('resultPixels');
+  const reasoningBox = document.getElementById('reasoningBox');
+
+  if (data.use_mistral) {
+    pixelsEl.textContent = '';
+    reasoningBox.style.display = '';
+    document.getElementById('reasoningText').textContent = data.signal.reasoning || '';
+  } else {
+    pixelsEl.innerHTML =
+      `<b style="color:var(--buy)">${(data.signal.green_pct * 100).toFixed(0)}%</b> green &middot; ` +
+      `<b style="color:var(--sell)">${(data.signal.red_pct * 100).toFixed(0)}%</b> red`;
+    reasoningBox.style.display = 'none';
+  }
+
+  // Ground truth
+  const gtEl = document.getElementById('resultGroundTruth');
+  if (data.ground_truth) {
+    gtEl.innerHTML = `Actual: <span class="badge badge-${data.ground_truth}">${data.ground_truth}</span>`;
+  } else {
+    gtEl.textContent = '';
+  }
+
+  // Match indicator
+  const matchEl = document.getElementById('resultMatch');
+  if (data.ground_truth) {
+    const correct = data.signal.action === data.ground_truth;
+    matchEl.className = `match-indicator ${correct ? 'match-correct' : 'match-wrong'}`;
+    matchEl.textContent = correct ? 'Correct' : 'Wrong';
+  } else {
+    matchEl.textContent = '';
+    matchEl.className = 'match-indicator';
+  }
+
+  document.getElementById('resultPrompt').textContent = data.prompt;
+}
+
+function showSelection() {
+  loadingView.style.display = 'none';
+  resultView.style.display = 'none';
+  selectionView.style.display = '';
+}
+
+document.getElementById('backBtn').addEventListener('click', showSelection);
+
+// ---------------------------------------------------------------------------
+// Image Modal
+// ---------------------------------------------------------------------------
+
+const imageModal = document.getElementById('imageModal');
+const modalImg = document.getElementById('modalImg');
+
+function openModal(src) {
+  modalImg.src = src;
+  imageModal.style.display = '';
+}
+
+imageModal.addEventListener('click', () => { imageModal.style.display = 'none'; });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') imageModal.style.display = 'none';
+});
+</script>
+</body>
+</html>

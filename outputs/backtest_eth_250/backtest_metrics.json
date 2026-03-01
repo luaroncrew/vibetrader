@@ -1,0 +1,8 @@
+{
+  "accuracy": 0.250996015936255,
+  "buy_accuracy": 0.17204301075268819,
+  "sell_accuracy": 0.21739130434782608,
+  "strategy_return": 0.9597742097827611,
+  "buy_hold_return": -0.600424170423012,
+  "n_samples": 251
+}
