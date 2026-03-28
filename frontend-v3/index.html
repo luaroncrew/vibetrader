@@ -21,12 +21,63 @@
   --radius: 12px;
 }
 
+[data-theme="light"] {
+  --bg: #f0f0f5;
+  --surface: #ffffff;
+  --surface2: #e4e4ee;
+  --border: #cccce0;
+  --text: #1a1a2e;
+  --text-dim: #606080;
+  --buy: #00a84f;
+  --sell: #d4001e;
+  --hold: #c28000;
+  --accent: #6633dd;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   min-height: 100vh;
 }
+
+/* Top nav */
+.topnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topnav-brand {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.topnav-brand span { color: var(--accent); }
+
+.theme-toggle {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, background 0.2s;
+  line-height: 1;
+}
+.theme-toggle:hover { border-color: var(--accent); }
 
 /* Header */
 .header {
@@ -312,6 +363,10 @@ body {
 </head>
 <body>
 
+<nav class="topnav">
+  <span class="topnav-brand">Vibe<span>Trader</span></span>
+  <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">🌙</button>
+</nav>
 
 <!-- Selection View -->
 <div id="selectionView">
@@ -367,6 +422,31 @@ body {
 </div>
 
 <script>
+// ---------------------------------------------------------------------------
+// Theme toggle
+// ---------------------------------------------------------------------------
+(function() {
+  const html = document.documentElement;
+  const btn = document.getElementById('themeToggle');
+  const saved = localStorage.getItem('vt-theme');
+  if (saved === 'light') {
+    html.setAttribute('data-theme', 'light');
+    btn.textContent = '☀️';
+  }
+  btn.addEventListener('click', () => {
+    const isLight = html.getAttribute('data-theme') === 'light';
+    if (isLight) {
+      html.removeAttribute('data-theme');
+      btn.textContent = '🌙';
+      localStorage.setItem('vt-theme', 'dark');
+    } else {
+      html.setAttribute('data-theme', 'light');
+      btn.textContent = '☀️';
+      localStorage.setItem('vt-theme', 'light');
+    }
+  });
+})();
+
 const selectionView = document.getElementById('selectionView');
 const loadingView = document.getElementById('loadingView');
 const resultView = document.getElementById('resultView');
