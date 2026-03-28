@@ -271,6 +271,53 @@ body {
 }
 
 
+/* Ticker bar */
+.ticker-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+}
+.ticker-track {
+  display: flex;
+  gap: 0;
+  white-space: nowrap;
+  animation: ticker-scroll 40s linear infinite;
+  will-change: transform;
+}
+.ticker-bar:hover .ticker-track { animation-play-state: paused; }
+@keyframes ticker-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 22px;
+  font-size: 0.75rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  border-right: 1px solid var(--border);
+}
+.ticker-item .sym {
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.04em;
+}
+.ticker-item .price { color: var(--text-dim); }
+.ticker-item .chg { font-weight: 600; }
+.ticker-item .chg.up   { color: var(--buy); }
+.ticker-item .chg.down { color: var(--sell); }
+
+body { padding-top: 36px; }
+
 /* Image modal */
 .image-modal {
   position: fixed;
@@ -312,6 +359,10 @@ body {
 </head>
 <body>
 
+<!-- Ticker Bar -->
+<div class="ticker-bar" id="tickerBar">
+  <div class="ticker-track" id="tickerTrack"></div>
+</div>
 
 <!-- Selection View -->
 <div id="selectionView">
@@ -512,6 +563,67 @@ imageModal.addEventListener('click', () => { imageModal.style.display = 'none'; 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') imageModal.style.display = 'none';
 });
+
+// ---------------------------------------------------------------------------
+// Stock Ticker
+// ---------------------------------------------------------------------------
+
+const TICKER_SYMBOLS = [
+  'AAPL','MSFT','NVDA','TSLA','AMZN','GOOG','META','AMD','NFLX','INTC',
+  'PLTR','SOFI','RIVN','LCID','COIN','HOOD','GME','AMC','SNDL','MARA',
+  'SPY','QQQ','IWM','DIA','VTI','ARKK','XLF','XLE','GLD','SLV',
+  'BTC','ETH','SOL','DOGE','XRP','ADA','AVAX','DOT','LINK','UNI',
+];
+
+let tickerData = {};
+
+function randPrice(min, max) {
+  return (Math.random() * (max - min) + min);
+}
+
+function initTicker() {
+  tickerData = {};
+  TICKER_SYMBOLS.forEach(sym => {
+    const price = randPrice(5, 800);
+    tickerData[sym] = { price, prev: price };
+  });
+  renderTicker();
+}
+
+function updateTicker() {
+  // Randomly nudge a subset of symbols
+  const toUpdate = TICKER_SYMBOLS.filter(() => Math.random() < 0.4);
+  toUpdate.forEach(sym => {
+    const pct = (Math.random() - 0.49) * 0.025; // slight upward bias
+    const newPrice = tickerData[sym].price * (1 + pct);
+    tickerData[sym].prev = tickerData[sym].price;
+    tickerData[sym].price = Math.max(0.01, newPrice);
+  });
+  renderTicker();
+}
+
+function renderTicker() {
+  const items = TICKER_SYMBOLS.map(sym => {
+    const { price, prev } = tickerData[sym];
+    const diff = price - prev;
+    const pct = ((diff / prev) * 100);
+    const up = diff >= 0;
+    const arrow = up ? '▲' : '▼';
+    const cls = up ? 'up' : 'down';
+    return `<span class="ticker-item">
+      <span class="sym">${sym}</span>
+      <span class="price">$${price < 10 ? price.toFixed(4) : price.toFixed(2)}</span>
+      <span class="chg ${cls}">${arrow} ${Math.abs(pct).toFixed(2)}%</span>
+    </span>`;
+  }).join('');
+
+  // Duplicate content so the seamless loop works regardless of viewport width
+  const track = document.getElementById('tickerTrack');
+  track.innerHTML = items + items;
+}
+
+initTicker();
+setInterval(updateTicker, 3000);
 </script>
 </body>
 </html>
