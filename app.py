@@ -12,6 +12,8 @@ from PIL import Image
 from inference.predict import load_pipeline, predict
 from inference.extract_signal import extract_signal
 from inference.extract_signal_mistral import extract_signal_mistral
+from data.fetch_ohlcv import fetch_ohlcv, add_indicators
+from data.render_charts import render_candlestick
 
 app = Flask(__name__)
 
@@ -19,6 +21,10 @@ METADATA_PATH = Path("data/rendered/metadata.json")
 INPUT_DIR = Path("data/rendered/input")
 TARGET_DIR = Path("data/rendered/target")
 CHECKPOINT_DIR = "checkpoints"
+
+SUPPORTED_PAIRS = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT"]
+WINDOW_SIZE = 40
+FUTURE_CANDLES = 4
 
 # Global pipeline — loaded once at startup
 pipe = None
@@ -38,6 +44,11 @@ def image_to_base64(image: Image.Image) -> str:
 
 @app.route("/")
 def index():
+    return send_from_directory("frontend-v4", "index.html")
+
+
+@app.route("/advanced")
+def advanced():
     return send_from_directory("frontend-v3", "index.html")
 
 
@@ -127,6 +138,64 @@ def run_prediction():
         response["target_image"] = image_to_base64(target_image.resize((256, 256)))
 
     return jsonify(response)
+
+
+@app.route("/api/analyse", methods=["POST"])
+def analyse():
+    """Fetch live OHLCV, render chart, run inference, return signal."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "JSON body required"}), 400
+
+    pair = data.get("pair", "BTC/USDT")
+    if pair not in SUPPORTED_PAIRS:
+        return jsonify({"error": f"Unsupported pair. Choose from: {SUPPORTED_PAIRS}"}), 400
+
+    # Fetch recent candles — 30 days gives ~180 4h candles, plenty for indicators
+    try:
+        df = fetch_ohlcv(pair, timeframe="4h", since_days=30)
+        df = add_indicators(df)
+    except Exception as e:
+        return jsonify({"error": f"Failed to fetch market data: {str(e)}"}), 502
+
+    if len(df) < WINDOW_SIZE:
+        return jsonify({"error": f"Not enough candles after indicator warmup ({len(df)} < {WINDOW_SIZE})"}), 500
+
+    input_window = df.iloc[-WINDOW_SIZE:].copy()
+
+    # Price range locked to input window so future slots have matching Y scale
+    price_low = float(input_window["low"].min())
+    price_high = float(input_window["high"].max())
+    total_slots = WINDOW_SIZE + FUTURE_CANDLES
+
+    input_img = render_candlestick(
+        input_window,
+        draw_marker=False,
+        total_slots=total_slots,
+        price_low=price_low,
+        price_high=price_high,
+    )
+
+    rsi_val = float(input_window.iloc[-1].get("rsi", 50.0))
+    macd_val = float(input_window.iloc[-1].get("MACD_12_26_9", 0.0))
+    prompt = f"Predict next {FUTURE_CANDLES} candles. RSI={round(rsi_val, 1)}, MACD={round(macd_val, 2)}"
+
+    generated_image = predict(pipe, input_img, prompt)
+
+    signal = extract_signal(generated_image)
+
+    return jsonify({
+        "pair": pair,
+        "prompt": prompt,
+        "input_image": image_to_base64(input_img),
+        "generated_image": image_to_base64(generated_image),
+        "signal": {
+            "action": signal.action,
+            "confidence": signal.confidence,
+            "green_pct": signal.green_pct,
+            "red_pct": signal.red_pct,
+        },
+    })
 
 
 def pick_showcase_ids():

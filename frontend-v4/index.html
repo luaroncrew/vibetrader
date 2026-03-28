@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VibeTrader</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a0f;
+  --surface: #14141f;
+  --surface2: #1c1c2e;
+  --border: #2a2a3e;
+  --text: #e0e0e8;
+  --text-dim: #8888a0;
+  --buy: #00e676;
+  --sell: #ff1744;
+  --hold: #9e9eb8;
+  --accent: #7c4dff;
+  --radius: 16px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.header h1 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.header h1 .vibe { color: var(--accent); }
+.header p {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 5px;
+}
+
+/* Card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+}
+
+/* Pair selector */
+.pair-section {
+  padding: 20px 20px 0;
+}
+.pair-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+.pair-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.pair-btn {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  color: var(--text-dim);
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+.pair-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.pair-btn.active {
+  border-color: var(--accent);
+  background: rgba(124, 77, 255, 0.12);
+  color: var(--text);
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 20px 0;
+}
+
+/* Analyse button */
+.analyse-section {
+  padding: 0 20px 20px;
+}
+.btn-analyse {
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 13px 20px;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-analyse:hover { background: #9c6fff; }
+.btn-analyse:active { transform: scale(0.98); }
+.btn-analyse:disabled {
+  background: var(--border);
+  color: var(--text-dim);
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-icon { font-size: 1rem; }
+
+/* Loading state */
+.loading-section {
+  display: none;
+  padding: 28px 20px;
+  text-align: center;
+}
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 14px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+.loading-sub {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  opacity: 0.5;
+  margin-top: 4px;
+}
+
+/* Signal result */
+.result-section {
+  display: none;
+}
+
+.signal-banner {
+  padding: 28px 20px 20px;
+  text-align: center;
+}
+.signal-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+.signal-value {
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.signal-value.BUY  { color: var(--buy); }
+.signal-value.SELL { color: var(--sell); }
+.signal-value.HOLD { color: var(--hold); }
+
+.signal-sub {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+.signal-sub b { color: var(--text); }
+
+.confidence-bar-wrap {
+  margin: 14px 20px 0;
+  height: 4px;
+  background: var(--surface2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.confidence-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+.confidence-bar.BUY  { background: var(--buy); }
+.confidence-bar.SELL { background: var(--sell); }
+.confidence-bar.HOLD { background: var(--hold); }
+
+/* Charts */
+.charts-section {
+  padding: 16px 20px 0;
+}
+.charts-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  display: flex;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+.charts-label span { flex: 1; text-align: center; }
+.charts-images {
+  display: flex;
+  gap: 3px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+}
+.charts-images img {
+  width: 50%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  display: block;
+  background: #000;
+}
+
+/* Reset / again */
+.result-footer {
+  padding: 16px 20px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.btn-again {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-again:hover { border-color: var(--accent); color: var(--text); }
+.result-pair-tag {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+/* Error */
+.error-section {
+  display: none;
+  padding: 20px;
+}
+.error-box {
+  background: rgba(255, 23, 68, 0.08);
+  border: 1px solid rgba(255, 23, 68, 0.2);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 0.8rem;
+  color: var(--sell);
+  line-height: 1.5;
+}
+.btn-retry {
+  margin-top: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-block;
+}
+.btn-retry:hover { border-color: var(--accent); color: var(--text); }
+
+/* Footer link */
+.page-footer {
+  margin-top: 18px;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+.page-footer a {
+  color: var(--accent);
+  text-decoration: none;
+  opacity: 0.7;
+}
+.page-footer a:hover { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span class="vibe">Vibe</span>Trader</h1>
+  <p>AI-powered 4-hour signal&nbsp;&mdash;&nbsp;diffusion model + pixel analysis</p>
+</div>
+
+<div class="card" id="card">
+
+  <!-- Pair selector + Analyse button (idle state) -->
+  <div id="idleSection">
+    <div class="pair-section">
+      <div class="pair-label">Select pair</div>
+      <div class="pair-grid" id="pairGrid">
+        <button class="pair-btn active" data-pair="BTC/USDT">BTC / USDT</button>
+        <button class="pair-btn" data-pair="ETH/USDT">ETH / USDT</button>
+        <button class="pair-btn" data-pair="SOL/USDT">SOL / USDT</button>
+        <button class="pair-btn" data-pair="BNB/USDT">BNB / USDT</button>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="analyse-section">
+      <button class="btn-analyse" id="analyseBtn">
+        <span class="btn-icon">⚡</span> Analyse
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-section" id="loadingSection">
+    <div class="spinner"></div>
+    <div class="loading-text">Running diffusion inference&hellip;</div>
+    <div class="loading-sub">Fetching live data &rarr; rendering chart &rarr; predicting next 4 candles</div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-section" id="resultSection">
+    <div class="signal-banner">
+      <div class="signal-label">4-hour signal</div>
+      <div class="signal-value" id="signalValue">BUY</div>
+      <div class="signal-sub" id="signalSub"></div>
+    </div>
+    <div class="confidence-bar-wrap">
+      <div class="confidence-bar" id="confidenceBar" style="width:0%"></div>
+    </div>
+    <div class="charts-section">
+      <div class="charts-label">
+        <span>Current (40 candles)</span>
+        <span>AI prediction</span>
+      </div>
+      <div class="charts-images">
+        <img id="chartInput" alt="Input chart">
+        <img id="chartGenerated" alt="Generated chart">
+      </div>
+    </div>
+    <div class="result-footer">
+      <span class="result-pair-tag" id="resultPairTag"></span>
+      <button class="btn-again" id="againBtn">Analyse again</button>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="error-section" id="errorSection">
+    <div class="error-box" id="errorMsg"></div>
+    <button class="btn-retry" id="retryBtn">Try again</button>
+  </div>
+
+</div>
+
+<div class="page-footer">
+  <a href="/advanced">Advanced view &rarr;</a>
+</div>
+
+<script>
+const PAIRS = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT"];
+let selectedPair = "BTC/USDT";
+
+// --- Pair selection ---
+document.getElementById('pairGrid').addEventListener('click', e => {
+  const btn = e.target.closest('.pair-btn');
+  if (!btn) return;
+  selectedPair = btn.dataset.pair;
+  document.querySelectorAll('.pair-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+});
+
+// --- State helpers ---
+function showIdle() {
+  document.getElementById('idleSection').style.display = '';
+  document.getElementById('loadingSection').style.display = 'none';
+  document.getElementById('resultSection').style.display = 'none';
+  document.getElementById('errorSection').style.display = 'none';
+  document.getElementById('analyseBtn').disabled = false;
+}
+
+function showLoading() {
+  document.getElementById('idleSection').style.display = 'none';
+  document.getElementById('loadingSection').style.display = '';
+  document.getElementById('resultSection').style.display = 'none';
+  document.getElementById('errorSection').style.display = 'none';
+}
+
+function showResult(data) {
+  document.getElementById('loadingSection').style.display = 'none';
+  document.getElementById('resultSection').style.display = '';
+
+  const action = data.signal.action;
+  const conf = data.signal.confidence;
+
+  const valEl = document.getElementById('signalValue');
+  valEl.textContent = action;
+  valEl.className = `signal-value ${action}`;
+
+  const subEl = document.getElementById('signalSub');
+  const confPct = Math.round(conf * 100);
+  if (action === 'BUY') {
+    subEl.innerHTML = `Confidence <b>${confPct}%</b> &mdash; bullish next 4h`;
+  } else if (action === 'SELL') {
+    subEl.innerHTML = `Confidence <b>${confPct}%</b> &mdash; bearish next 4h`;
+  } else {
+    subEl.innerHTML = `Confidence <b>${confPct}%</b> &mdash; no clear direction`;
+  }
+
+  const bar = document.getElementById('confidenceBar');
+  bar.className = `confidence-bar ${action}`;
+  // Small delay so CSS transition fires
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    bar.style.width = `${confPct}%`;
+  }));
+
+  document.getElementById('chartInput').src = `data:image/png;base64,${data.input_image}`;
+  document.getElementById('chartGenerated').src = `data:image/png;base64,${data.generated_image}`;
+  document.getElementById('resultPairTag').textContent = data.pair;
+}
+
+function showError(msg) {
+  document.getElementById('loadingSection').style.display = 'none';
+  document.getElementById('errorSection').style.display = '';
+  document.getElementById('errorMsg').textContent = msg;
+}
+
+// --- Analyse ---
+function runAnalyse() {
+  showLoading();
+  fetch('/api/analyse', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pair: selectedPair }),
+  })
+    .then(r => r.json().then(d => ({ ok: r.ok, data: d })))
+    .then(({ ok, data }) => {
+      if (!ok) throw new Error(data.error || 'Server error');
+      showResult(data);
+    })
+    .catch(err => showError(`Analysis failed: ${err.message}`));
+}
+
+document.getElementById('analyseBtn').addEventListener('click', runAnalyse);
+document.getElementById('againBtn').addEventListener('click', showIdle);
+document.getElementById('retryBtn').addEventListener('click', showIdle);
+</script>
+</body>
+</html>
