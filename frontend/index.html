@@ -498,6 +498,38 @@ body {
 .bt-table .correct-cell { color: var(--buy); }
 .bt-table .wrong-cell { color: var(--sell); }
 
+/* Light mode */
+html[data-theme="light"] {
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface2: #e8e8f0;
+  --border: #d0d0e0;
+  --text: #1a1a2e;
+  --text-dim: #5a5a78;
+}
+
+/* Theme toggle button */
+.theme-toggle {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 900;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+}
+.theme-toggle:hover { border-color: var(--accent); }
+.theme-toggle svg { width: 18px; height: 18px; display: block; }
+
 /* Responsive */
 @media (max-width: 700px) {
   .triplet-images { flex-direction: column; aspect-ratio: 1 / 3; }
@@ -518,6 +550,9 @@ body {
 </head>
 <body>
 
+<button class="theme-toggle" id="themeToggle" title="Toggle light/dark mode" aria-label="Toggle light/dark mode">
+  <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
+</button>
 
 <div class="view-tabs" id="viewTabs">
   <button class="active" data-view="pairs">Chart Pairs</button>
@@ -1077,6 +1112,29 @@ function closeModal() {
 }
 
 imageModal.addEventListener('click', closeModal);
+
+// ---------------------------------------------------------------------------
+// Dark / Light mode toggle
+// ---------------------------------------------------------------------------
+const SUN = `<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>`;
+const MOON = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
+
+(function initTheme() {
+  const stored = localStorage.getItem('vt-theme');
+  const isDark = stored ? stored === 'dark' : true;
+  applyTheme(isDark ? 'dark' : 'light');
+})();
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeIcon').innerHTML = theme === 'dark' ? MOON : SUN;
+  localStorage.setItem('vt-theme', theme);
+}
+
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+});
 </script>
 </body>
 </html>
