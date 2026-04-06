@@ -3,7 +3,71 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VibeTrader</title>
+<title>VibeTrader – Data Viewer &amp; Backtest Explorer</title>
+<meta name="description" content="Browse all VibeTrader training chart pairs, compare AI model checkpoint predictions, and explore BTC/ETH backtest results. The AI strategy achieved +107% return on BTC and +96% on ETH.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://vibetrader.app/data-viewer">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="VibeTrader">
+<meta property="og:title" content="VibeTrader – Data Viewer &amp; Backtest Explorer">
+<meta property="og:description" content="Browse all VibeTrader training chart pairs, compare AI model checkpoint predictions, and explore BTC/ETH backtest results. The AI strategy achieved +107% return on BTC and +96% on ETH.">
+<meta property="og:image" content="https://vibetrader.app/og-image.png">
+<meta property="og:image:alt" content="VibeTrader P&amp;L distribution showing AI trading strategy performance">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://vibetrader.app/data-viewer">
+<meta property="og:locale" content="en_US">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="VibeTrader – Data Viewer &amp; Backtest Explorer">
+<meta name="twitter:description" content="Browse AI chart pairs, compare model checkpoints, and explore BTC/ETH backtest results. AI strategy achieved +107% return on BTC.">
+<meta name="twitter:image" content="https://vibetrader.app/og-image.png">
+<meta name="twitter:image:alt" content="VibeTrader AI trading strategy P&L distribution">
+
+<!-- JSON-LD Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://vibetrader.app/#website",
+      "url": "https://vibetrader.app/",
+      "name": "VibeTrader",
+      "description": "AI-powered cryptocurrency chart prediction using diffusion models"
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://vibetrader.app/data-viewer#webpage",
+      "url": "https://vibetrader.app/data-viewer",
+      "name": "VibeTrader – Data Viewer & Backtest Explorer",
+      "description": "Browse training chart pairs, compare model checkpoints, and explore backtesting results for the VibeTrader AI crypto prediction system.",
+      "inLanguage": "en",
+      "isPartOf": { "@id": "https://vibetrader.app/#website" },
+      "breadcrumb": {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://vibetrader.app/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Data Viewer",
+            "item": "https://vibetrader.app/data-viewer"
+          }
+        ]
+      }
+    }
+  ]
+}
+</script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -518,82 +582,99 @@ body {
 </head>
 <body>
 
+<header class="header" role="banner">
+  <h1><span>Vibe</span>Trader</h1>
+  <p>Data viewer &amp; backtest explorer for AI-powered crypto chart prediction</p>
+</header>
 
-<div class="view-tabs" id="viewTabs">
-  <button class="active" data-view="pairs">Chart Pairs</button>
-  <button data-view="compare">Model Comparison</button>
-  <button data-view="backtest">Backtest</button>
+<nav aria-label="Main views">
+  <div class="view-tabs" id="viewTabs" role="tablist">
+    <button class="active" data-view="pairs" role="tab" aria-selected="true" aria-controls="viewer">Chart Pairs</button>
+    <button data-view="compare" role="tab" aria-selected="false" aria-controls="compareView">Model Comparison</button>
+    <button data-view="backtest" role="tab" aria-selected="false" aria-controls="backtestView">Backtest</button>
+  </div>
+</nav>
+
+<div class="filter-bar" id="filterBar" role="group" aria-label="Filter by signal type">
+  <button class="active" data-signal="ALL" aria-pressed="true">All</button>
+  <button data-signal="BUY" aria-pressed="false">Buy</button>
+  <button data-signal="SELL" aria-pressed="false">Sell</button>
+  <button data-signal="HOLD" aria-pressed="false">Hold</button>
 </div>
 
-<div class="filter-bar" id="filterBar">
-  <button class="active" data-signal="ALL">All</button>
-  <button data-signal="BUY">Buy</button>
-  <button data-signal="SELL">Sell</button>
-  <button data-signal="HOLD">Hold</button>
-</div>
+<main role="main">
 
-<div class="viewer" id="viewer">
-  <div class="loading" id="loadingMsg"><div class="spinner"></div>Loading metadata&hellip;</div>
+<section id="viewer" class="viewer" aria-label="Chart pair viewer" role="tabpanel">
+  <div class="loading" id="loadingMsg" role="status"><div class="spinner" aria-hidden="true"></div>Loading metadata&hellip;</div>
 
-  <button class="nav-btn" id="prevBtn" title="Previous (Left Arrow)" style="display:none">&larr;</button>
-  <div class="pair-card" id="pairCard" style="display:none">
-    <div class="pair-labels"><span>Input</span><span>Target</span></div>
+  <button class="nav-btn" id="prevBtn" title="Previous (Left Arrow)" aria-label="Previous chart pair" style="display:none">&larr;</button>
+  <article class="pair-card" id="pairCard" style="display:none">
+    <div class="pair-labels" aria-label="Chart labels"><span>Input</span><span>Target</span></div>
     <div class="pair-images">
-      <img id="imgInput" alt="Input">
-      <img id="imgTarget" alt="Target">
+      <img id="imgInput" alt="Input candlestick chart" loading="lazy">
+      <img id="imgTarget" alt="Target candlestick chart (actual future)" loading="lazy">
     </div>
-    <div class="pair-meta">
-      <span class="badge" id="metaBadge"></span>
+    <div class="pair-meta" aria-label="Chart metadata">
+      <span class="badge" id="metaBadge" aria-live="polite"></span>
       <span class="stat" id="metaChange"></span>
       <span class="stat" id="metaRsi"></span>
       <span class="stat" id="metaMacd"></span>
       <span class="id-label" id="metaId"></span>
     </div>
-    <div class="pair-prompt" id="metaPrompt"></div>
-    <div class="counter" id="metaCounter"></div>
-  </div>
-  <button class="nav-btn" id="nextBtn" title="Next (Right Arrow)" style="display:none">&rarr;</button>
-</div>
+    <div class="pair-prompt" id="metaPrompt" aria-label="Model prompt"></div>
+    <div class="counter" id="metaCounter" aria-live="polite"></div>
+  </article>
+  <button class="nav-btn" id="nextBtn" title="Next (Right Arrow)" aria-label="Next chart pair" style="display:none">&rarr;</button>
+</section>
 
-<div class="hint" id="pairsHint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys to navigate</div>
+<p class="hint" id="pairsHint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys to navigate</p>
 
-<div class="compare-view" id="compareView" style="display:none">
+<section class="compare-view" id="compareView" style="display:none" aria-label="Model comparison" role="tabpanel">
   <div class="compare-header">
-    <button class="nav-btn" id="cmpPrevBtn" title="Previous checkpoint">&larr;</button>
-    <span class="checkpoint-name" id="cmpCheckpointName"></span>
-    <button class="nav-btn" id="cmpNextBtn" title="Next checkpoint">&rarr;</button>
+    <button class="nav-btn" id="cmpPrevBtn" title="Previous checkpoint" aria-label="Previous model checkpoint">&larr;</button>
+    <span class="checkpoint-name" id="cmpCheckpointName" aria-live="polite"></span>
+    <button class="nav-btn" id="cmpNextBtn" title="Next checkpoint" aria-label="Next model checkpoint">&rarr;</button>
   </div>
-  <div class="accuracy-bar" id="cmpAccuracy"></div>
-  <div class="triplet-grid" id="cmpGrid"></div>
-  <div class="hint" style="margin-top:16px"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch checkpoints</div>
-</div>
+  <div class="accuracy-bar" id="cmpAccuracy" aria-live="polite"></div>
+  <div class="triplet-grid" id="cmpGrid" role="list" aria-label="Prediction triplets"></div>
+  <p class="hint" style="margin-top:16px"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch checkpoints</p>
+</section>
 
-<div class="backtest-view" id="backtestView" style="display:none">
-  <div class="bt-metrics" id="btMetrics"></div>
+<section class="backtest-view" id="backtestView" style="display:none" aria-label="Backtest results" role="tabpanel">
+  <div class="bt-metrics" id="btMetrics" role="list" aria-label="Backtest metrics"></div>
   <div class="bt-chart-card">
-    <div class="chart-title">Cumulative Returns</div>
-    <canvas id="btCanvas"></canvas>
-    <div class="bt-legend">
+    <h2 class="chart-title">Cumulative Returns</h2>
+    <canvas id="btCanvas" aria-label="Cumulative returns chart comparing model strategy vs buy-and-hold" role="img"></canvas>
+    <div class="bt-legend" aria-label="Chart legend">
       <span class="leg-strategy">Model Strategy</span>
-      <span class="leg-buyhold">Buy & Hold</span>
+      <span class="leg-buyhold">Buy &amp; Hold</span>
     </div>
   </div>
   <div class="bt-table-card">
-    <div class="table-title">Trade Log</div>
+    <h2 class="table-title">Trade Log</h2>
     <div class="bt-table-wrap">
-      <table class="bt-table" id="btTable">
+      <table class="bt-table" id="btTable" aria-label="Backtest trade log">
         <thead><tr>
-          <th>#</th><th>Predicted</th><th>Actual</th><th>Conf</th><th>Price %</th><th>Result</th><th>Return</th>
+          <th scope="col">#</th><th scope="col">Predicted</th><th scope="col">Actual</th><th scope="col">Conf</th><th scope="col">Price %</th><th scope="col">Result</th><th scope="col">Return</th>
         </tr></thead>
         <tbody id="btTbody"></tbody>
       </table>
     </div>
   </div>
+</section>
+
+</main>
+
+<!-- Image Modal – dialog overlay -->
+<div class="image-modal" id="imageModal" style="display:none"
+     role="dialog" aria-modal="true" aria-label="Zoomed chart view" tabindex="-1">
+  <img id="modalImg" alt="Zoomed candlestick chart">
 </div>
 
-<div class="image-modal" id="imageModal" style="display:none">
-  <img id="modalImg" alt="Zoomed">
-</div>
+<footer role="contentinfo" style="text-align:center;padding:24px 16px;font-size:0.75rem;color:var(--text-dim)">
+  VibeTrader &mdash; AI crypto prediction research tool &mdash;
+  <a href="/" style="color:var(--accent);text-decoration:none" aria-label="Open prediction tool">Prediction Tool</a>
+</footer>
 
 <script>
 let allData = [];
@@ -839,10 +920,10 @@ function renderComparison() {
           <span>Prediction</span>
         </div>
         <div class="triplet-images">
-          <img src="../outputs/comparisons/inputs/${sample.id}.png" alt="Input" onclick="openModal(this.src)">
-          <img src="../outputs/comparisons/targets/${sample.id}.png" alt="Target" onclick="openModal(this.src)">
+          <img src="../outputs/comparisons/inputs/${sample.id}.png" alt="Input candlestick chart #${sample.id}" loading="lazy" decoding="async" onclick="openModal(this.src,this.alt)">
+          <img src="../outputs/comparisons/targets/${sample.id}.png" alt="Target candlestick chart #${sample.id} (ground truth: ${sample.ground_truth})" loading="lazy" decoding="async" onclick="openModal(this.src,this.alt)">
           ${pred
-            ? `<img src="${predImgSrc}" alt="Prediction" onclick="openModal(this.src)">`
+            ? `<img src="${predImgSrc}" alt="Model prediction for chart #${sample.id}" loading="lazy" decoding="async" onclick="openModal(this.src,this.alt)">`
             : `<div style="width:33.333%;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:0.8rem">No prediction</div>`
           }
         </div>
@@ -1067,9 +1148,11 @@ function renderTradeTable(trades) {
 const imageModal = document.getElementById('imageModal');
 const modalImg = document.getElementById('modalImg');
 
-function openModal(src) {
+function openModal(src, alt) {
   modalImg.src = src;
+  if (alt) modalImg.alt = alt;
   imageModal.style.display = '';
+  imageModal.focus();
 }
 
 function closeModal() {

@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Allow: /data-viewer
+
+# Block API endpoints and raw data from indexing
+Disallow: /api/
+Disallow: /api/images/
+Disallow: /api/predict
+Disallow: /api/showcase
+
+Sitemap: https://vibetrader.app/sitemap.xml
