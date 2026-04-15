@@ -4,6 +4,8 @@
 
 VibeTrader fine-tunes an [InstructPix2Pix](https://arxiv.org/abs/2211.09800) image-editing diffusion model on rendered candlestick charts to generate future price candles. Instead of predicting a number, it *draws* what the chart will look like next -- and then a signal extractor reads the drawing to produce a BUY, SELL, or HOLD decision.
 
+This README includes a brief reference to *Exploring Diffusion Models for Generative Forecasting of Financial Charts* by Taegyeong Lee, Jiwon Park, Kyunga Bang, Seunghyun Hwang, and Ung-Jin Jang, arXiv:2509.02308v1 (2025), because the project buzzed on Twitter.
+
 <p align="center">
   <img src="outputs/comparisons/inputs/000000.png" width="256" />
   &nbsp;&rarr;&nbsp;
