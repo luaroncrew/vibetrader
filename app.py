@@ -6,7 +6,7 @@ import json
 import random
 from pathlib import Path
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, Response, jsonify, request, send_from_directory
 from PIL import Image
 
 from inference.predict import load_pipeline, predict
@@ -39,6 +39,27 @@ def image_to_base64(image: Image.Image) -> str:
 @app.route("/")
 def index():
     return send_from_directory("frontend-v3", "index.html")
+
+
+@app.route("/data-viewer")
+def data_viewer():
+    return send_from_directory("frontend", "index.html")
+
+
+@app.route("/robots.txt")
+def robots():
+    return send_from_directory(".", "robots.txt", mimetype="text/plain")
+
+
+@app.route("/sitemap.xml")
+def sitemap():
+    return send_from_directory(".", "sitemap.xml", mimetype="application/xml")
+
+
+@app.route("/og-image.png")
+def og_image():
+    """Serve the P&L distribution chart as the Open Graph social preview image."""
+    return send_from_directory(".", "pnl_distribution.png", mimetype="image/png")
 
 
 @app.route("/api/showcase")

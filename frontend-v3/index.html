@@ -3,7 +3,67 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VibeTrader - Predict</title>
+<title>VibeTrader – AI Crypto Chart Prediction</title>
+<meta name="description" content="VibeTrader uses fine-tuned AI diffusion models to predict cryptocurrency price action from candlestick chart images. Select a chart and watch the AI generate the next 4 candles with a BUY, SELL, or HOLD signal.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://vibetrader.app/">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="VibeTrader">
+<meta property="og:title" content="VibeTrader – AI Crypto Chart Prediction">
+<meta property="og:description" content="VibeTrader uses fine-tuned AI diffusion models to predict cryptocurrency price action from candlestick chart images. Select a chart and watch the AI generate the next 4 candles with a BUY, SELL, or HOLD signal.">
+<meta property="og:image" content="https://vibetrader.app/og-image.png">
+<meta property="og:image:alt" content="VibeTrader P&amp;L distribution showing AI trading strategy performance">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://vibetrader.app/">
+<meta property="og:locale" content="en_US">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="VibeTrader – AI Crypto Chart Prediction">
+<meta name="twitter:description" content="VibeTrader uses fine-tuned AI diffusion models to predict cryptocurrency price action from candlestick chart images.">
+<meta name="twitter:image" content="https://vibetrader.app/og-image.png">
+<meta name="twitter:image:alt" content="VibeTrader AI trading strategy P&L distribution">
+
+<!-- Preload the first above-the-fold API call -->
+<link rel="preconnect" href="/" crossorigin>
+<!-- Preload hint: tell browser the app fetches from /api/showcase early -->
+<link rel="prefetch" href="/api/showcase" as="fetch" crossorigin="anonymous">
+
+<!-- JSON-LD Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://vibetrader.app/#website",
+      "url": "https://vibetrader.app/",
+      "name": "VibeTrader",
+      "description": "AI-powered cryptocurrency chart prediction using diffusion models"
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://vibetrader.app/#app",
+      "name": "VibeTrader Prediction Tool",
+      "url": "https://vibetrader.app/",
+      "description": "Select a BTC/ETH candlestick chart and let a fine-tuned InstructPix2Pix diffusion model predict the next 4 candles, extracting a BUY, SELL, or HOLD trading signal.",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript",
+      "inLanguage": "en",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "isPartOf": { "@id": "https://vibetrader.app/#website" }
+    }
+  ]
+}
+</script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -312,59 +372,73 @@ body {
 </head>
 <body>
 
+<header class="header" role="banner">
+  <h1><span>Vibe</span>Trader</h1>
+  <p>AI-powered cryptocurrency chart prediction using diffusion models</p>
+</header>
+
+<main id="appMain" role="main" aria-label="Chart prediction interface">
 
 <!-- Selection View -->
-<div id="selectionView">
-  <div class="showcase" id="showcase">
-    <div class="center-loading"><div class="spinner"></div>Loading charts&hellip;</div>
+<section id="selectionView" aria-label="Chart selection">
+  <div class="showcase" id="showcase" role="list" aria-label="Showcase charts">
+    <div class="center-loading"><div class="spinner" role="status" aria-label="Loading charts"></div>Loading charts&hellip;</div>
   </div>
-</div>
+</section>
 
 <!-- Loading View -->
-<div id="loadingView" style="display:none">
+<section id="loadingView" style="display:none" aria-label="Prediction in progress" aria-live="polite">
   <div class="loading-view">
-    <img class="preview-img" id="loadingPreview" alt="Selected chart">
-    <div class="spinner"></div>
+    <img class="preview-img" id="loadingPreview" alt="Selected candlestick chart being analyzed" loading="lazy">
+    <div class="spinner" role="status" aria-label="Running diffusion inference"></div>
     <div class="loading-text">Running diffusion inference&hellip;</div>
     <div class="loading-sub">This takes 30-60 seconds</div>
   </div>
-</div>
+</section>
 
 <!-- Result View -->
-<div id="resultView" style="display:none">
+<section id="resultView" style="display:none" aria-label="Prediction results" aria-live="polite">
   <div class="result-view">
-    <button class="result-back" id="backBtn">&larr; Back to Selection</button>
-    <div class="result-card">
-      <div class="result-labels">
+    <button class="result-back" id="backBtn" aria-label="Go back to chart selection">&larr; Back to Selection</button>
+    <article class="result-card">
+      <div class="result-labels" role="row" aria-label="Chart comparison labels">
         <span>Input Chart</span>
         <span>AI Prediction</span>
         <span>Actual Target</span>
       </div>
-      <div class="result-images">
-        <img id="resultInput" alt="Input" onclick="openModal(this.src)">
-        <img id="resultGenerated" alt="Generated" onclick="openModal(this.src)">
-        <img id="resultTarget" alt="Target" onclick="openModal(this.src)">
+      <div class="result-images" role="row">
+        <img id="resultInput" alt="Input candlestick chart" onclick="openModal(this.src,this.alt)" loading="lazy">
+        <img id="resultGenerated" alt="AI-generated candlestick chart prediction" onclick="openModal(this.src,this.alt)" loading="lazy">
+        <img id="resultTarget" alt="Actual target candlestick chart" onclick="openModal(this.src,this.alt)" loading="lazy">
       </div>
-      <div class="result-meta">
-        <span class="badge badge-lg" id="resultBadge"></span>
+      <div class="result-meta" aria-label="Prediction signal and statistics">
+        <span class="badge badge-lg" id="resultBadge" aria-live="polite"></span>
         <span class="stat" id="resultConfidence"></span>
         <span class="stat" id="resultPixels"></span>
         <span class="stat" id="resultGroundTruth"></span>
         <span class="match-indicator" id="resultMatch"></span>
       </div>
-      <div class="result-prompt" id="resultPrompt"></div>
-      <div class="reasoning-box" id="reasoningBox" style="display:none">
+      <div class="result-prompt" id="resultPrompt" aria-label="Model prompt used"></div>
+      <div class="reasoning-box" id="reasoningBox" style="display:none" aria-live="polite">
         <div class="reasoning-label">Mistral Pixtral Reasoning</div>
         <div class="reasoning-text" id="reasoningText"></div>
       </div>
-    </div>
+    </article>
   </div>
+</section>
+
+</main>
+
+<!-- Image Modal – dialog overlay -->
+<div class="image-modal" id="imageModal" style="display:none"
+     role="dialog" aria-modal="true" aria-label="Zoomed chart view" tabindex="-1">
+  <img id="modalImg" alt="Zoomed candlestick chart">
 </div>
 
-<!-- Image Modal -->
-<div class="image-modal" id="imageModal" style="display:none">
-  <img id="modalImg" alt="Zoomed">
-</div>
+<footer role="contentinfo" style="text-align:center;padding:24px 16px;font-size:0.75rem;color:var(--text-dim)">
+  VibeTrader &mdash; AI crypto prediction research tool &mdash;
+  <a href="/data-viewer" style="color:var(--accent);text-decoration:none" aria-label="Open legacy data viewer">Data Viewer</a>
+</footer>
 
 <script>
 const selectionView = document.getElementById('selectionView');
@@ -388,16 +462,25 @@ fetch('/api/showcase')
 
 function renderShowcase(items) {
   let html = '';
-  for (const item of items) {
+  items.forEach((item, idx) => {
+    // First card is above-the-fold; remaining cards use lazy loading
+    const loadingAttr = idx === 0 ? 'eager' : 'lazy';
     html += `
-      <div class="showcase-card" onclick="selectChart('${item.id}')">
-        <img src="/api/images/input/${item.id}.png" alt="Chart ${item.id}">
+      <div class="showcase-card" onclick="selectChart('${item.id}')"
+           role="listitem" tabindex="0"
+           aria-label="Select candlestick chart #${item.id} for AI prediction"
+           onkeydown="if(event.key==='Enter'||event.key===' ')selectChart('${item.id}')">
+        <img src="/api/images/input/${item.id}.png"
+             alt="Candlestick chart #${item.id} – click to predict next 4 candles"
+             loading="${loadingAttr}"
+             decoding="async"
+             width="200" height="200">
         <div class="card-info">
           <span class="card-id">#${item.id}</span>
         </div>
       </div>
     `;
-  }
+  });
   showcase.innerHTML = html;
 }
 
@@ -432,11 +515,17 @@ function showResult(data) {
   loadingView.style.display = 'none';
   resultView.style.display = '';
 
-  document.getElementById('resultInput').src = `data:image/png;base64,${data.input_image}`;
-  document.getElementById('resultGenerated').src = `data:image/png;base64,${data.generated_image}`;
+  const inputImg = document.getElementById('resultInput');
+  inputImg.src = `data:image/png;base64,${data.input_image}`;
+  inputImg.alt = `Input candlestick chart #${data.image_id}`;
+
+  const generatedImg = document.getElementById('resultGenerated');
+  generatedImg.src = `data:image/png;base64,${data.generated_image}`;
+  generatedImg.alt = `AI-predicted candlestick chart for #${data.image_id}`;
 
   // Target image
   const targetImg = document.getElementById('resultTarget');
+  targetImg.alt = `Actual target candlestick chart for #${data.image_id}`;
   if (data.target_image) {
     targetImg.src = `data:image/png;base64,${data.target_image}`;
   } else {
@@ -503,9 +592,11 @@ document.getElementById('backBtn').addEventListener('click', showSelection);
 const imageModal = document.getElementById('imageModal');
 const modalImg = document.getElementById('modalImg');
 
-function openModal(src) {
+function openModal(src, alt) {
   modalImg.src = src;
+  if (alt) modalImg.alt = alt;
   imageModal.style.display = '';
+  imageModal.focus();
 }
 
 imageModal.addEventListener('click', () => { imageModal.style.display = 'none'; });
