@@ -21,12 +21,64 @@
   --radius: 12px;
 }
 
+[data-theme="light"] {
+  --bg: #f0f0f5;
+  --surface: #ffffff;
+  --surface2: #e4e4ee;
+  --border: #cccce0;
+  --text: #1a1a2e;
+  --text-dim: #606080;
+  --buy: #00a84f;
+  --sell: #d4001e;
+  --hold: #c28000;
+  --accent: #6633dd;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   min-height: 100vh;
 }
+
+/* Top nav */
+.topnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topnav-brand {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.topnav-brand span { color: var(--accent); }
+
+.theme-toggle {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, background 0.2s;
+  line-height: 1;
+}
+.theme-toggle:hover { border-color: var(--accent); }
+.theme-toggle svg { width: 18px; height: 18px; display: block; }
 
 /* Header */
 .header {
@@ -312,6 +364,12 @@ body {
 </head>
 <body>
 
+<nav class="topnav">
+  <span class="topnav-brand">Vibe<span>Trader</span></span>
+  <button class="theme-toggle" id="themeToggle" title="Toggle light/dark mode" aria-label="Toggle light/dark mode">
+    <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
+  </button>
+</nav>
 
 <!-- Selection View -->
 <div id="selectionView">
@@ -367,6 +425,10 @@ body {
 </div>
 
 <script>
+// ---------------------------------------------------------------------------
+// Showcase / API
+// ---------------------------------------------------------------------------
+
 const selectionView = document.getElementById('selectionView');
 const loadingView = document.getElementById('loadingView');
 const resultView = document.getElementById('resultView');
@@ -511,6 +573,29 @@ function openModal(src) {
 imageModal.addEventListener('click', () => { imageModal.style.display = 'none'; });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') imageModal.style.display = 'none';
+});
+
+// ---------------------------------------------------------------------------
+// Dark / Light mode toggle
+// ---------------------------------------------------------------------------
+const SUN = `<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>`;
+const MOON = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
+
+(function initTheme() {
+  const stored = localStorage.getItem('vt-theme');
+  const isDark = stored ? stored === 'dark' : true;
+  applyTheme(isDark ? 'dark' : 'light');
+})();
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeIcon').innerHTML = theme === 'dark' ? MOON : SUN;
+  localStorage.setItem('vt-theme', theme);
+}
+
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
 });
 </script>
 </body>
