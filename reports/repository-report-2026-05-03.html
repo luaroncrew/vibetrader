@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VibeTrader Repository Report</title>
+  <style>
+    :root {
+      --ink: #18202a;
+      --muted: #5c6875;
+      --line: #d9e0e7;
+      --panel: #f6f8fb;
+      --accent: #0b6bcb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      line-height: 1.45;
+      background: white;
+    }
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 40px 48px 56px;
+    }
+    h1, h2, h3 {
+      margin: 0 0 12px;
+      line-height: 1.2;
+    }
+    h1 {
+      font-size: 30px;
+      margin-bottom: 6px;
+    }
+    h2 {
+      font-size: 20px;
+      color: var(--accent);
+      margin-top: 28px;
+      padding-top: 8px;
+      border-top: 2px solid var(--line);
+    }
+    h3 {
+      font-size: 16px;
+      margin-top: 18px;
+    }
+    p, li {
+      font-size: 13px;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 18px;
+    }
+    .lead {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin: 18px 0 10px;
+    }
+    ul, ol {
+      margin: 8px 0 12px 22px;
+      padding: 0;
+    }
+    li { margin: 5px 0; }
+    code {
+      font-family: "Consolas", "SFMono-Regular", monospace;
+      background: #f2f4f7;
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 16px;
+      font-size: 13px;
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      border: 1px solid var(--line);
+      padding: 8px 10px;
+    }
+    th {
+      background: var(--panel);
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+    .callout {
+      border-left: 4px solid var(--accent);
+      background: #f7fbff;
+      padding: 10px 14px;
+      margin: 12px 0;
+    }
+    .small {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    @media print {
+      .page {
+        padding: 20px 24px 28px;
+      }
+      h2 {
+        break-after: avoid;
+      }
+      table, ul, ol, .lead, .callout {
+        break-inside: avoid;
+      }
+    }
+    @page {
+      size: Letter;
+      margin: 0.5in;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>VibeTrader Repository Report</h1>
+    <div class="meta">Date: 2026-05-03 | Repository: <code>vibetrader</code> | Branch inspected: <code>add-repo-report-pdf-e2ffb2</code></div>
+
+    <div class="lead">
+      <p><strong>Executive summary.</strong> VibeTrader is a research-oriented Python project that experiments with using an image-editing diffusion model to forecast short-term cryptocurrency chart movement. Instead of predicting numeric prices directly, it renders OHLCV data as candlestick-chart images, fine-tunes an InstructPix2Pix/Stable Diffusion pipeline to extend those charts by four candles, and then translates the generated image into a BUY, SELL, or HOLD signal.</p>
+      <p>The repository contains the end-to-end concept: data ingestion, chart rendering, dataset assembly, training helpers, inference, signal extraction, backtesting, a paper-trading loop, and a Flask-based interactive UI. Its largest practical limitation is that several required runtime artifacts are excluded from Git, so a fresh clone is not immediately runnable.</p>
+    </div>
+
+    <h2>Project Purpose</h2>
+    <ol>
+      <li>Convert market time series into chart images rather than feed raw numbers into a classic forecasting model.</li>
+      <li>Fine-tune a diffusion image model to draw plausible future candles.</li>
+      <li>Extract a discrete trading signal from the generated continuation.</li>
+      <li>Evaluate whether that signal can produce useful simulated returns.</li>
+    </ol>
+    <p>This makes the repository better described as an applied ML research prototype than a production trading system.</p>
+
+    <h2>Architecture</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Stage</th>
+          <th>Primary files</th>
+          <th>Responsibility</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Data ingestion</td>
+          <td><code>data/fetch_ohlcv.py</code></td>
+          <td>Downloads OHLCV candles via <code>ccxt</code> and computes RSI/MACD features.</td>
+        </tr>
+        <tr>
+          <td>Image generation</td>
+          <td><code>data/render_charts.py</code></td>
+          <td>Renders 256x256 candlestick charts and labels target samples with BUY/SELL/HOLD markers.</td>
+        </tr>
+        <tr>
+          <td>Dataset assembly</td>
+          <td><code>data/build_dataset.py</code></td>
+          <td>Builds a Hugging Face dataset for InstructPix2Pix fine-tuning.</td>
+        </tr>
+        <tr>
+          <td>Training</td>
+          <td><code>train/run_training.sh</code>, <code>train/run_training_gpu.sh</code></td>
+          <td>Launches Stable Diffusion / InstructPix2Pix fine-tuning with different hardware assumptions.</td>
+        </tr>
+        <tr>
+          <td>Inference</td>
+          <td><code>inference/predict.py</code></td>
+          <td>Loads the fine-tuned pipeline and generates chart continuations.</td>
+        </tr>
+        <tr>
+          <td>Signal extraction</td>
+          <td><code>inference/extract_signal.py</code>, <code>inference/extract_signal_mistral.py</code></td>
+          <td>Turns generated images into BUY/SELL/HOLD decisions using either pixel heuristics or a Mistral vision model.</td>
+        </tr>
+        <tr>
+          <td>Evaluation</td>
+          <td><code>bot/backtest.py</code></td>
+          <td>Backtests the model on held-out data and computes simulated returns.</td>
+        </tr>
+        <tr>
+          <td>Interactive serving</td>
+          <td><code>app.py</code>, <code>frontend-v3/index.html</code></td>
+          <td>Serves a simple interactive UI over Flask.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      Workflow summary: fetch OHLCV -> render chart pairs -> build dataset -> train diffusion model -> predict future candles -> extract signal -> backtest or inspect through the UI.
+    </div>
+
+    <h2>Major Directories and Files</h2>
+    <div class="two-col">
+      <div>
+        <h3>Core code</h3>
+        <ul>
+          <li><code>app.py</code>: Flask backend and API.</li>
+          <li><code>bot/</code>: backtesting and paper trading.</li>
+          <li><code>data/</code>: market fetching, feature engineering, chart rendering, dataset building.</li>
+          <li><code>inference/</code>: model loading, prediction, signal extraction, checkpoint comparison.</li>
+          <li><code>train/</code>: environment setup and training launchers.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Artifacts and docs</h3>
+        <ul>
+          <li><code>README.md</code>: strong narrative and quickstart.</li>
+          <li><code>outputs/</code>: saved backtest metrics, CSVs, and comparison samples.</li>
+          <li><code>demo.ipynb</code>: notebook exploration.</li>
+          <li><code>plot_pnl_distribution.py</code> and <code>pnl_distribution.png</code>: trade distribution analysis.</li>
+          <li><code>requirements.txt</code>: primary runtime dependencies.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>Dependencies</h2>
+    <ul>
+      <li><strong>ML stack:</strong> <code>torch</code>, <code>diffusers</code>, <code>transformers</code>, <code>accelerate</code>, <code>safetensors</code></li>
+      <li><strong>Data and processing:</strong> <code>pandas</code>, <code>numpy</code>, <code>datasets</code>, <code>tqdm</code></li>
+      <li><strong>Market data and indicators:</strong> <code>ccxt</code>, <code>pandas-ta</code></li>
+      <li><strong>Rendering and charts:</strong> <code>Pillow</code>, <code>matplotlib</code>, <code>mplfinance</code></li>
+      <li><strong>Tracking and serving:</strong> <code>wandb</code>, <code>flask</code>, <code>mistralai</code></li>
+    </ul>
+    <p>Operationally, the repository also expects external model weights, local checkpoint artifacts, and optionally secrets such as <code>MISTRAL_API_KEY</code>, <code>WANDB_API_KEY</code>, <code>HF_TOKEN</code>, and Binance credentials.</p>
+
+    <h2>Operational Workflow</h2>
+    <ol>
+      <li>Fetch raw market candles into CSV.</li>
+      <li>Compute indicators and render sliding chart windows.</li>
+      <li>Assemble a Hugging Face dataset for image-edit training.</li>
+      <li>Fine-tune the diffusion model.</li>
+      <li>Run inference on held-out or live windows.</li>
+      <li>Convert the generated chart into a discrete signal.</li>
+      <li>Measure results through backtesting or view predictions in the Flask UI.</li>
+    </ol>
+    <p class="small">The workflow is coherent, but it depends on heavyweight generated directories that are not stored in the repository.</p>
+
+    <h2>Strengths</h2>
+    <ul>
+      <li>Distinctive research angle with a clearly explained thesis.</li>
+      <li>End-to-end prototype coverage from data collection through UI.</li>
+      <li>Readable, compact codebase with intuitive file boundaries.</li>
+      <li>Committed sample datasets and outputs make inspection easier.</li>
+      <li>Two signal extraction modes create useful comparison opportunities.</li>
+      <li>Simple Flask plus static HTML delivery surface.</li>
+    </ul>
+
+    <h2>Risks and Notable Gaps</h2>
+    <h3>Fresh-clone operability</h3>
+    <p>The repository does not include <code>checkpoints/</code>, <code>data/rendered/</code>, or <code>data/dataset/</code>. Those paths are ignored and absent in this checkout, but the app and several scripts require them. A new operator cannot run the full stack immediately after cloning.</p>
+
+    <h3>Stale code paths</h3>
+    <p><code>extract_signal.py</code> returns <code>action</code>, <code>confidence</code>, <code>green_pct</code>, and <code>red_pct</code>. However, <code>bot/trader.py</code>, <code>inference/generate_comparison.py</code>, and notebook snippets still reference <code>signal.avg_rgb</code>, which no longer exists. Those paths will fail when exercised.</p>
+
+    <h3>Live trading fidelity</h3>
+    <p>The paper trader does not compute current RSI/MACD values. It hardcodes <code>RSI=50.0</code> and <code>MACD=0.0</code>, which makes live prompting inconsistent with the training and backtest pipeline.</p>
+
+    <h3>Evaluation realism</h3>
+    <p>Backtesting does not model fees, slippage, spread, latency, or risk controls. That is acceptable for exploratory research, but it reduces confidence that reported returns would survive real execution.</p>
+
+    <h3>Engineering maturity</h3>
+    <p>The repo has no visible automated tests, CI workflow, lockfile, container definition, or artifact bootstrap path for local inference. There is also some ambiguity between tracked generated outputs and ignored parent directories, which can complicate contributor expectations.</p>
+
+    <h2>Overall Assessment</h2>
+    <p>VibeTrader is a compact and interesting ML research prototype with a strong narrative and a credible experimental pipeline. It is best understood as a proof-of-concept laboratory for visual financial forecasting rather than a production trading application.</p>
+    <p>Its strongest qualities are clarity of idea and breadth of prototype coverage. Its weakest areas are reproducibility, runtime completeness, and production hardening. Addressing missing artifacts and the stale code references would materially improve the repository's usability.</p>
+
+    <h2>Files Consulted</h2>
+    <p><code>README.md</code>, <code>requirements.txt</code>, <code>app.py</code>, <code>data/fetch_ohlcv.py</code>, <code>data/render_charts.py</code>, <code>data/build_dataset.py</code>, <code>inference/predict.py</code>, <code>inference/extract_signal.py</code>, <code>inference/extract_signal_mistral.py</code>, <code>inference/generate_comparison.py</code>, <code>bot/backtest.py</code>, <code>bot/trader.py</code>, <code>train/run_training.sh</code>, <code>train/run_training_gpu.sh</code>, <code>train/brev_setup.sh</code>, <code>outputs/BACKTEST_REPORT.md</code>, and <code>.gitignore</code>.</p>
+  </div>
+</body>
+</html>
