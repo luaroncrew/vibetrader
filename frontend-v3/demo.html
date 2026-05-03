@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VibeTrader Demo</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #081018;
+  --panel: rgba(10, 20, 30, 0.78);
+  --panel-strong: rgba(14, 26, 38, 0.92);
+  --border: rgba(110, 167, 214, 0.18);
+  --text: #e8f2ff;
+  --muted: #94a8c1;
+  --accent: #68d3ff;
+  --accent-2: #ffb347;
+  --buy: #36e28f;
+  --sell: #ff5d73;
+  --hold: #ffe082;
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.36);
+}
+body {
+  min-height: 100vh;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(104, 211, 255, 0.14), transparent 32%),
+    radial-gradient(circle at top right, rgba(255, 179, 71, 0.14), transparent 28%),
+    linear-gradient(160deg, #05111d 0%, #091622 45%, #050b12 100%);
+}
+.shell {
+  width: min(1240px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 28px 0 48px;
+}
+.hero {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 18px;
+  align-items: stretch;
+}
+.card {
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+}
+.hero-copy {
+  padding: 28px;
+}
+.eyebrow {
+  color: var(--accent);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  margin-bottom: 12px;
+}
+h1 {
+  font-size: clamp(2rem, 4vw, 4rem);
+  line-height: 0.96;
+  letter-spacing: -0.04em;
+  max-width: 12ch;
+}
+.lede {
+  margin-top: 18px;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 54ch;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+.chip {
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.82rem;
+}
+.metric-stack {
+  padding: 24px;
+  display: grid;
+  gap: 12px;
+}
+.metric-stack h2 {
+  font-size: 0.95rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.metric {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--panel-strong);
+  border: 1px solid var(--border);
+}
+.metric strong {
+  font-size: 1.45rem;
+  letter-spacing: -0.03em;
+}
+.metric span {
+  color: var(--muted);
+  font-size: 0.84rem;
+  align-self: center;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 22px 0 14px;
+}
+.toolbar-left, .toolbar-right {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+button {
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  padding: 10px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: 140ms ease;
+  font-size: 0.88rem;
+}
+button:hover, button.active {
+  transform: translateY(-1px);
+  border-color: rgba(104, 211, 255, 0.5);
+  background: rgba(104, 211, 255, 0.14);
+}
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+}
+.thumb {
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.thumb img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+  background: #000;
+}
+.thumb-body {
+  padding: 12px 14px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 5px 10px;
+  border-radius: 999px;
+}
+.BUY { background: rgba(54, 226, 143, 0.16); color: var(--buy); }
+.SELL { background: rgba(255, 93, 115, 0.14); color: var(--sell); }
+.HOLD { background: rgba(255, 224, 130, 0.16); color: var(--hold); }
+.thumb small {
+  color: var(--muted);
+  font-family: monospace;
+}
+.viewer {
+  margin-top: 18px;
+  padding: 22px;
+}
+.viewer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.pane {
+  background: var(--panel-strong);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+}
+.pane-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.pane img {
+  width: 100%;
+  display: block;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  background: #000;
+}
+.caption {
+  margin-top: 14px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.section-title {
+  margin: 26px 0 14px;
+  font-size: 1.08rem;
+  letter-spacing: -0.02em;
+}
+.pnl {
+  margin-top: 26px;
+  padding: 24px;
+}
+.pnl img {
+  width: 100%;
+  display: block;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+}
+.footer {
+  margin-top: 24px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.82rem;
+}
+@media (max-width: 900px) {
+  .hero, .viewer-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="card hero-copy">
+        <div class="eyebrow">Frontend Demo</div>
+        <h1>Charts in. Predicted candles out.</h1>
+        <p class="lede">
+          This static walkthrough packages the existing VibeTrader output set into a cleaner
+          demo flow: scan performance, inspect a few BTC examples, and compare each rendered
+          input chart against its generated continuation.
+        </p>
+        <div class="chips">
+          <div class="chip">BTC/USDT 4h</div>
+          <div class="chip">Diffusion forecast UI</div>
+          <div class="chip">Static demo from repo artifacts</div>
+        </div>
+      </div>
+      <aside class="card metric-stack">
+        <h2>Backtest Snapshot</h2>
+        <div class="metric"><strong>+107.97%</strong><span>BTC strategy return</span></div>
+        <div class="metric"><strong>27.45%</strong><span>BTC directional accuracy</span></div>
+        <div class="metric"><strong>+95.98%</strong><span>ETH zero-shot return</span></div>
+        <div class="metric"><strong>255</strong><span>BTC evaluated samples</span></div>
+      </aside>
+    </section>
+
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <button class="filter active" data-filter="ALL">All</button>
+        <button class="filter" data-filter="BUY">BUY</button>
+        <button class="filter" data-filter="SELL">SELL</button>
+        <button class="filter" data-filter="HOLD">HOLD</button>
+      </div>
+      <div class="toolbar-right">
+        <button id="prevBtn">Previous</button>
+        <button id="nextBtn">Next</button>
+      </div>
+    </div>
+
+    <section class="gallery" id="gallery"></section>
+
+    <section class="card viewer">
+      <div class="viewer-grid">
+        <article class="pane">
+          <div class="pane-header"><span>Input Chart</span><span id="selectedId">000000</span></div>
+          <img id="inputImage" src="../outputs/comparisons/inputs/000000.png" alt="Input chart" />
+        </article>
+        <article class="pane">
+          <div class="pane-header"><span>Generated Target</span><span id="selectedSignal" class="badge BUY">BUY</span></div>
+          <img id="targetImage" src="../outputs/comparisons/targets/000000.png" alt="Generated target chart" />
+        </article>
+      </div>
+      <p class="caption" id="caption">
+        Example pair 000000. Generated continuation shows the predicted next candles and the
+        extracted signal marker used by the trading workflow.
+      </p>
+    </section>
+
+    <section class="card pnl">
+      <div class="section-title">P&amp;L Distribution</div>
+      <img src="../pnl_distribution.png" alt="PnL distribution" />
+    </section>
+
+    <div class="footer">Demo page built from committed repo artifacts for shareable review and recording.</div>
+  </main>
+
+<script>
+const items = [
+  { id: "000000", signal: "BUY" },
+  { id: "000008", signal: "SELL" },
+  { id: "000017", signal: "BUY" },
+  { id: "000025", signal: "HOLD" },
+  { id: "000034", signal: "SELL" }
+];
+
+let filter = "ALL";
+let currentIndex = 0;
+
+const gallery = document.getElementById("gallery");
+const inputImage = document.getElementById("inputImage");
+const targetImage = document.getElementById("targetImage");
+const selectedId = document.getElementById("selectedId");
+const selectedSignal = document.getElementById("selectedSignal");
+const caption = document.getElementById("caption");
+
+function filteredItems() {
+  return filter === "ALL" ? items : items.filter(item => item.signal === filter);
+}
+
+function renderGallery() {
+  const data = filteredItems();
+  if (!data.length) {
+    gallery.innerHTML = "<div class='card' style='padding:20px;color:var(--muted)'>No examples in this filter.</div>";
+    return;
+  }
+
+  currentIndex = Math.min(currentIndex, data.length - 1);
+  gallery.innerHTML = data.map((item, idx) => `
+    <article class="thumb" data-id="${item.id}" data-idx="${idx}">
+      <img src="../outputs/comparisons/inputs/${item.id}.png" alt="Input ${item.id}" />
+      <div class="thumb-body">
+        <small>${item.id}</small>
+        <span class="badge ${item.signal}">${item.signal}</span>
+      </div>
+    </article>
+  `).join("");
+
+  document.querySelectorAll(".thumb").forEach(node => {
+    node.addEventListener("click", () => {
+      currentIndex = Number(node.dataset.idx);
+      syncViewer();
+    });
+  });
+  syncViewer();
+}
+
+function syncViewer() {
+  const data = filteredItems();
+  const item = data[currentIndex];
+  if (!item) return;
+  inputImage.src = `../outputs/comparisons/inputs/${item.id}.png`;
+  targetImage.src = `../outputs/comparisons/targets/${item.id}.png`;
+  selectedId.textContent = item.id;
+  selectedSignal.textContent = item.signal;
+  selectedSignal.className = `badge ${item.signal}`;
+  caption.textContent = `Example pair ${item.id}. Generated continuation shows the predicted next candles and the extracted ${item.signal} marker used by the trading workflow.`;
+}
+
+document.querySelectorAll(".filter").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".filter").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    filter = btn.dataset.filter;
+    currentIndex = 0;
+    renderGallery();
+  });
+});
+
+document.getElementById("prevBtn").addEventListener("click", () => {
+  const data = filteredItems();
+  currentIndex = (currentIndex - 1 + data.length) % data.length;
+  syncViewer();
+});
+
+document.getElementById("nextBtn").addEventListener("click", () => {
+  const data = filteredItems();
+  currentIndex = (currentIndex + 1) % data.length;
+  syncViewer();
+});
+
+renderGallery();
+</script>
+</body>
+</html>
