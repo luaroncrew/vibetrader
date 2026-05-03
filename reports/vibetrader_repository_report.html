@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>VibeTrader Repository Inspection Report</title>
+  <style>
+    @page { size: letter; margin: 0.65in; }
+    * { box-sizing: border-box; }
+    body {
+      color: #172033;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      margin: 0;
+    }
+    h1, h2, h3 { color: #111827; line-height: 1.15; margin: 0; }
+    h1 { font-size: 26pt; letter-spacing: 0; }
+    h2 {
+      border-bottom: 1px solid #d8dee8;
+      font-size: 15pt;
+      margin-top: 24px;
+      padding-bottom: 5px;
+    }
+    h3 { font-size: 11.5pt; margin-top: 16px; }
+    p { margin: 7px 0; }
+    ul { margin: 7px 0 7px 20px; padding: 0; }
+    li { margin: 3px 0; }
+    code {
+      background: #f3f5f8;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      color: #0f172a;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 9pt;
+      padding: 1px 4px;
+    }
+    table {
+      border-collapse: collapse;
+      margin: 9px 0 12px;
+      page-break-inside: avoid;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #d8dee8;
+      padding: 6px 7px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #eef3f8; color: #111827; font-weight: 700; }
+    .cover {
+      border-bottom: 4px solid #1f7a4d;
+      margin-bottom: 18px;
+      padding-bottom: 16px;
+    }
+    .subtitle { color: #526174; font-size: 12pt; margin-top: 8px; }
+    .meta {
+      color: #526174;
+      display: grid;
+      gap: 2px;
+      grid-template-columns: 120px 1fr;
+      margin-top: 16px;
+    }
+    .summary {
+      background: #f4f8f5;
+      border-left: 4px solid #1f7a4d;
+      margin: 14px 0;
+      padding: 10px 12px;
+    }
+    .diagram {
+      align-items: center;
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(6, 1fr);
+      margin: 12px 0;
+      page-break-inside: avoid;
+    }
+    .box {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      min-height: 58px;
+      padding: 8px;
+      text-align: center;
+    }
+    .box strong { display: block; font-size: 9.5pt; }
+    .box span { color: #526174; display: block; font-size: 8.5pt; margin-top: 3px; }
+    .arrow { color: #64748b; font-size: 16pt; text-align: center; }
+    .callout {
+      background: #fff7ed;
+      border-left: 4px solid #ea580c;
+      margin: 10px 0;
+      padding: 9px 12px;
+    }
+    .risk {
+      background: #fff1f2;
+      border-left: 4px solid #e11d48;
+      margin: 10px 0;
+      padding: 9px 12px;
+    }
+    .small { color: #64748b; font-size: 9pt; }
+    .page-break { break-before: page; }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <h1>VibeTrader Repository Inspection Report</h1>
+    <p class="subtitle">Purpose, architecture, workflow, dependencies, strengths, risks, and gaps</p>
+    <div class="meta">
+      <div>Repository</div><div><code>/home/user/vibetrader</code></div>
+      <div>Branch</div><div><code>add-repo-pdf-report-047492</code></div>
+      <div>Base branch</div><div><code>main</code></div>
+      <div>Report date</div><div>2026-05-03</div>
+      <div>Inspector</div><div>Codex task agent</div>
+    </div>
+  </section>
+
+  <section class="summary">
+    <h2>Executive Summary</h2>
+    <p>
+      VibeTrader is an experimental cryptocurrency forecasting project that treats OHLCV candles as
+      images rather than purely numeric time series. It renders 40-candle BTC/USDT or ETH/USDT windows
+      into 256x256 candlestick charts, fine-tunes an InstructPix2Pix diffusion model to draw the next
+      four candles, extracts a BUY/SELL/HOLD signal from the generated image, and evaluates that signal
+      with historical backtests and a Flask-based UI.
+    </p>
+    <p>
+      The repo is coherent as a research prototype: the data, rendering, dataset assembly, training,
+      inference, backtesting, paper trading, and demo UI paths are all represented. The main gap is
+      production readiness. There are no automated tests, no environment template, no committed model
+      checkpoints or rendered training dataset, limited validation beyond two assets and one timeframe,
+      and several code paths reference fields or files that are absent in a clean checkout.
+    </p>
+  </section>
+
+  <h2>Project Purpose</h2>
+  <p>
+    The project explores whether a diffusion image-editing model can visually continue financial
+    candlestick charts and whether those generated continuations can drive profitable trading signals.
+    It frames chart forecasting as conditional image generation: input image plus prompt in, edited chart
+    with future candles and an intended signal marker out.
+  </p>
+  <p>
+    The README reports unusually low directional accuracy but positive simulated returns on BTC/USDT and
+    ETH/USDT backtests. That makes the project more of a research and demonstration system than a
+    deployable trading engine.
+  </p>
+
+  <h2>Architecture</h2>
+  <div class="diagram">
+    <div class="box"><strong>Market Data</strong><span>CCXT Binance OHLCV CSV</span></div>
+    <div class="arrow">→</div>
+    <div class="box"><strong>Rendering</strong><span>256x256 chart pairs</span></div>
+    <div class="arrow">→</div>
+    <div class="box"><strong>Dataset</strong><span>HuggingFace image columns</span></div>
+    <div class="arrow">→</div>
+    <div class="box"><strong>Training</strong><span>InstructPix2Pix fine-tune</span></div>
+    <div class="arrow">→</div>
+    <div class="box"><strong>Inference</strong><span>Generated future chart</span></div>
+    <div class="arrow">→</div>
+    <div class="box"><strong>Signal</strong><span>Pixel or Pixtral extraction</span></div>
+  </div>
+  <p>
+    The core implementation is script-oriented rather than framework-heavy. Shared behavior is mostly in
+    Python modules under <code>data/</code> and <code>inference/</code>, with command-line entry points for
+    rendering, dataset building, inference, backtesting, and paper trading. The web layer in
+    <code>app.py</code> wraps the inference pipeline and serves a static HTML frontend.
+  </p>
+
+  <h2>Major Directories and Files</h2>
+  <table>
+    <thead><tr><th>Path</th><th>Role</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>README.md</code></td>
+        <td>Primary project documentation</td>
+        <td>Explains the diffusion-based chart forecasting concept, quickstart, backtest summary, and limitations.</td>
+      </tr>
+      <tr>
+        <td><code>data/fetch_ohlcv.py</code></td>
+        <td>Market data ingestion</td>
+        <td>Fetches OHLCV candles via CCXT, optionally with Binance API credentials, and computes RSI/MACD via <code>pandas-ta</code>.</td>
+      </tr>
+      <tr>
+        <td><code>data/render_charts.py</code></td>
+        <td>Image pair generation</td>
+        <td>Renders 40-candle input charts and 44-candle targets with signal marker labels using PIL.</td>
+      </tr>
+      <tr>
+        <td><code>data/build_dataset.py</code></td>
+        <td>Dataset assembly</td>
+        <td>Converts rendered input/target images and prompts into a HuggingFace Dataset saved to disk.</td>
+      </tr>
+      <tr>
+        <td><code>train/run_training.sh</code></td>
+        <td>Apple Silicon/local training launcher</td>
+        <td>Finds or clones diffusers examples and launches InstructPix2Pix fine-tuning through Accelerate.</td>
+      </tr>
+      <tr>
+        <td><code>train/run_training_gpu.sh</code></td>
+        <td>Cloud GPU training launcher</td>
+        <td>Assumes <code>$HOME/vibetrader</code>, loads <code>.env</code>, detects GPU memory, and tunes batch size.</td>
+      </tr>
+      <tr>
+        <td><code>inference/predict.py</code></td>
+        <td>Diffusion inference</td>
+        <td>Loads <code>StableDiffusionInstructPix2PixPipeline</code> from checkpoints and produces generated charts.</td>
+      </tr>
+      <tr>
+        <td><code>inference/extract_signal.py</code></td>
+        <td>Pixel-based signal extraction</td>
+        <td>Inspects the future-candle region and classifies dominant green/red pixels as BUY/SELL/HOLD.</td>
+      </tr>
+      <tr>
+        <td><code>inference/extract_signal_mistral.py</code></td>
+        <td>Vision LLM signal extraction</td>
+        <td>Uses Mistral Pixtral to interpret current and generated chart images. Requires <code>MISTRAL_API_KEY</code>.</td>
+      </tr>
+      <tr>
+        <td><code>inference/generate_comparison.py</code></td>
+        <td>Checkpoint comparison</td>
+        <td>Discovers checkpoints, generates comparison images, and writes JSON for frontend comparison views.</td>
+      </tr>
+      <tr>
+        <td><code>bot/backtest.py</code></td>
+        <td>Historical evaluation</td>
+        <td>Runs held-out-window inference, compares predicted to actual labels, and writes CSV/JSON metrics.</td>
+      </tr>
+      <tr>
+        <td><code>bot/trader.py</code></td>
+        <td>Paper trading loop</td>
+        <td>Fetches recent candles, runs prediction, and simulates long/short positioning with W&B logging.</td>
+      </tr>
+      <tr>
+        <td><code>app.py</code></td>
+        <td>Flask backend</td>
+        <td>Serves <code>frontend-v3</code>, selects showcase charts, loads the diffusion model, and exposes prediction APIs.</td>
+      </tr>
+      <tr>
+        <td><code>frontend/</code>, <code>frontend-v3/</code></td>
+        <td>Static browser UIs</td>
+        <td>HTML/CSS/JS frontends for browsing chart pairs and running interactive predictions.</td>
+      </tr>
+      <tr>
+        <td><code>outputs/</code></td>
+        <td>Generated evaluation artifacts</td>
+        <td>Contains backtest metrics/results and a small comparison image set.</td>
+      </tr>
+      <tr>
+        <td><code>demo.ipynb</code>, <code>plot_pnl_distribution.py</code></td>
+        <td>Notebook and visualization helpers</td>
+        <td>Support exploration and generation of the committed P&L distribution chart.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Dependencies</h2>
+  <p>
+    Runtime and research dependencies are listed in <code>requirements.txt</code>. The main groups are:
+  </p>
+  <ul>
+    <li>Deep learning and model tooling: <code>torch</code>, <code>diffusers</code>, <code>transformers</code>, <code>accelerate</code>, <code>safetensors</code>.</li>
+    <li>Dataset and data processing: <code>datasets</code>, <code>pandas</code>, <code>numpy</code>, <code>pandas-ta</code>, <code>ccxt</code>.</li>
+    <li>Chart and image handling: <code>Pillow</code>, <code>matplotlib</code>, <code>mplfinance</code>.</li>
+    <li>Experiment tracking and progress: <code>wandb</code>, <code>tqdm</code>.</li>
+    <li>Optional vision-model extraction and UI: <code>mistralai</code>, <code>flask</code>.</li>
+  </ul>
+  <p>
+    <code>train/requirements-gpu.txt</code> is a slimmer GPU training dependency list and omits several
+    runtime/UI/data-fetching packages. The training scripts also depend on HuggingFace Diffusers example
+    scripts that are not vendored in the repository unless cloned during setup.
+  </p>
+
+  <h2>Operational Workflow</h2>
+  <ol>
+    <li>Install Python dependencies in a virtual environment with <code>pip install -r requirements.txt</code>.</li>
+    <li>Fetch Binance candles with <code>python data/fetch_ohlcv.py --symbol BTC/USDT --timeframe 4h --days 730</code>.</li>
+    <li>Render image pairs with <code>python data/render_charts.py --csv data/btc_usdt_4h.csv --output data/rendered</code>.</li>
+    <li>Build a HuggingFace dataset with <code>python data/build_dataset.py --rendered data/rendered --output data/dataset</code>.</li>
+    <li>Train with <code>bash train/run_training.sh</code> or <code>bash train/run_training_gpu.sh</code>.</li>
+    <li>Run backtests with <code>python -m bot.backtest --csv ... --checkpoint checkpoints/ --output outputs/backtest --max-samples 250</code>.</li>
+    <li>Launch the demo UI with <code>python app.py</code>, which loads model checkpoints and serves prediction routes on port 8923.</li>
+  </ol>
+  <div class="callout">
+    <strong>Operational caveat:</strong> a clean checkout contains CSV samples and backtest outputs, but not the
+    rendered training dataset under <code>data/rendered/</code> or model checkpoints under <code>checkpoints/</code>.
+    The interactive UI and inference commands require those artifacts to be generated or restored first.
+  </div>
+
+  <h2>Observed Backtest Artifacts</h2>
+  <table>
+    <thead><tr><th>Run</th><th>Accuracy</th><th>Strategy Return</th><th>Buy & Hold</th><th>Samples</th></tr></thead>
+    <tbody>
+      <tr><td>BTC/USDT 100-sample</td><td>35.3%</td><td>+40.84%</td><td>-22.57%</td><td>102</td></tr>
+      <tr><td>BTC/USDT 250-sample</td><td>27.5%</td><td>+107.97%</td><td>-50.09%</td><td>255</td></tr>
+      <tr><td>ETH/USDT 250-sample</td><td>25.1%</td><td>+95.98%</td><td>-60.04%</td><td>251</td></tr>
+    </tbody>
+  </table>
+  <p class="small">
+    These numbers come from committed files in <code>outputs/backtest*/backtest_metrics.json</code> and
+    <code>outputs/BACKTEST_REPORT.md</code>. They are useful research artifacts, but they are not proof of
+    live profitability because fees, slippage, market-impact, risk constraints, and broader regime
+    validation are absent.
+  </p>
+
+  <h2>Strengths</h2>
+  <ul>
+    <li>Clear, novel research direction with a consistent end-to-end implementation.</li>
+    <li>Simple chart renderer produces deterministic input/target image pairs and metadata prompts.</li>
+    <li>Inference is cleanly separated from signal extraction, allowing pixel-based and vision-LLM interpretations.</li>
+    <li>Backtesting writes both per-sample CSVs and summary JSON, making later analysis straightforward.</li>
+    <li>The README honestly documents important limitations and provides a usable quickstart.</li>
+    <li>Static frontends make it easy to inspect examples without adding a heavy JavaScript build system.</li>
+  </ul>
+
+  <h2>Risks</h2>
+  <div class="risk">
+    <strong>Financial/model risk:</strong> Backtests cover a narrow asset/timeframe/regime slice, omit fees and
+    slippage, and use a small sample count. Reported returns should be treated as exploratory, not tradable.
+  </div>
+  <ul>
+    <li>No automated test suite exists for rendering, signal extraction, backtesting math, API routes, or training setup.</li>
+    <li>Important generated artifacts are absent from the checkout: <code>checkpoints/</code>, <code>data/rendered/</code>, and <code>data/dataset</code>.</li>
+    <li>Several runtime paths will fail in a clean environment unless artifact prerequisites and credentials are provided.</li>
+    <li><code>bot/trader.py</code> and <code>inference/generate_comparison.py</code> reference <code>signal.avg_rgb</code>, but <code>Signal</code> in <code>extract_signal.py</code> has no such field.</li>
+    <li>The Flask app performs expensive model loading and warmup at process start and has no health endpoint, auth, job queue, or resource limits.</li>
+    <li>The Mistral integration manually parses <code>.env</code> and sends chart images to a third-party API; operational privacy and cost controls are not documented.</li>
+    <li>Training scripts assume external Diffusers example code and W&B state; reproducibility depends on mutable upstream code unless pinned more tightly.</li>
+  </ul>
+
+  <h2>Notable Gaps</h2>
+  <ul>
+    <li>Add a <code>.env.example</code> documenting optional <code>BINANCE_API_KEY</code>, <code>BINANCE_SECRET</code>, <code>MISTRAL_API_KEY</code>, W&B settings, and checkpoint/data paths.</li>
+    <li>Add smoke tests for <code>compute_signal</code>, chart rendering dimensions, pixel signal extraction thresholds, and backtest return calculations.</li>
+    <li>Add artifact management instructions for checkpoints and rendered datasets, including expected directory layouts and file sizes.</li>
+    <li>Compute and report risk metrics such as max drawdown, Sharpe/Sortino, trade count, exposure, fees, slippage, and confidence-conditioned returns.</li>
+    <li>Validate across more assets, exchanges, timeframes, and market regimes with walk-forward or out-of-sample evaluation.</li>
+    <li>Fix stale references to <code>avg_rgb</code> or extend the <code>Signal</code> dataclass if that metric is still needed.</li>
+    <li>Make UI startup degrade gracefully when checkpoints or rendered showcase images are missing.</li>
+  </ul>
+
+  <h2>Conclusion</h2>
+  <p>
+    VibeTrader is best understood as a compact research prototype for diffusion-based visual market
+    forecasting. It contains the ingredients needed to reproduce an experiment and inspect its outputs,
+    but it needs stronger reproducibility, tests, artifact handling, risk analysis, and operational guardrails
+    before it can be considered reliable trading infrastructure.
+  </p>
+</body>
+</html>
