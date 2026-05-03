@@ -203,6 +203,116 @@ bash train/run_training_gpu.sh
 python -m bot.backtest --csv data/btc_usdt_4h.csv --checkpoint checkpoints/ --output outputs/backtest --max-samples 250
 ```
 
+### Run the automated bot
+
+Safe default is paper trading. The live execution path exists, but it is opt-in and requires explicit environment configuration.
+
+```bash
+export VIBETRADER_MODE=paper
+export VIBETRADER_CHECKPOINT=checkpoints
+python -m bot.run_bot --once
+```
+
+Run continuously:
+
+```bash
+python -m bot.run_bot
+```
+
+Control the bot manually:
+
+```bash
+python -m bot.run_bot --control pause
+python -m bot.run_bot --control resume
+python -m bot.run_bot --control kill
+python -m bot.run_bot --control clear-kill
+python -m bot.run_bot --control status
+```
+
+### Binance execution modes
+
+The bot supports three execution modes through `VIBETRADER_MODE`:
+
+- `paper`: default, fully simulated fills and balances
+- `binance_testnet`: CCXT Binance sandbox market orders, still safer than live
+- `binance_live`: real Binance spot market orders, only when explicitly configured
+
+Recommended startup:
+
+```bash
+export BINANCE_API_KEY=...
+export BINANCE_SECRET=...
+export BINANCE_TESTNET=true
+export VIBETRADER_MODE=binance_testnet
+export VIBETRADER_DRY_RUN=false
+python -m bot.run_bot --once
+```
+
+Live mode is intentionally not the default:
+
+```bash
+export BINANCE_API_KEY=...
+export BINANCE_SECRET=...
+export BINANCE_TESTNET=false
+export VIBETRADER_MODE=binance_live
+export VIBETRADER_DRY_RUN=false
+python -m bot.run_bot --once
+```
+
+### Trading runtime architecture
+
+The automated bot now implements:
+
+- machine-safe signal contracts in `bot/contracts.py`
+- market ingestion via CCXT + RSI/MACD enrichment in `bot/market.py`
+- diffusion-model inference wrapped into a deterministic signal schema in `bot/model_runtime.py`
+- a separate risk engine with confidence gating, sizing, drawdown limits, loss streak limits, and shorting controls in `bot/risk_engine.py`
+- execution adapters for paper and Binance in `bot/execution.py`
+- SQLite persistence for signals, orders, fills, positions, and events in `bot/persistence.py`
+- monitoring hooks via JSONL event logs and optional W&B in `bot/monitoring.py`
+- manual pause/kill files in `runtime/control/`
+- automatic kill switch on risk breaches
+
+### Persistence and controls
+
+By default the bot stores runtime state here:
+
+- SQLite DB: `runtime/trader.db`
+- Event log: `runtime/events.jsonl`
+- Control plane files: `runtime/control/pause` and `runtime/control/kill`
+
+### Environment variables
+
+Key configuration knobs:
+
+```bash
+VIBETRADER_MODE=paper|binance_testnet|binance_live
+VIBETRADER_DRY_RUN=true|false
+VIBETRADER_CHECKPOINT=checkpoints
+VIBETRADER_SYMBOL=BTC/USDT
+VIBETRADER_TIMEFRAME=4h
+VIBETRADER_POLL_INTERVAL_SECONDS=300
+VIBETRADER_INITIAL_BALANCE_USD=10000
+VIBETRADER_MIN_CONFIDENCE=0.62
+VIBETRADER_MAX_NOTIONAL_FRACTION=0.10
+VIBETRADER_MAX_POSITION_NOTIONAL_USD=2000
+VIBETRADER_MAX_DAILY_DRAWDOWN_PCT=0.05
+VIBETRADER_MAX_TOTAL_DRAWDOWN_PCT=0.12
+VIBETRADER_MAX_CONSECUTIVE_LOSSES=4
+VIBETRADER_ALLOW_SHORT=false
+VIBETRADER_ENABLE_WANDB=false
+BINANCE_API_KEY=...
+BINANCE_SECRET=...
+BINANCE_TESTNET=true|false
+```
+
+### Notes on execution safety
+
+- The execution path assumes trading-only API keys.
+- Default operation is safe-mode paper trading.
+- If `VIBETRADER_DRY_RUN=true`, the bot routes through the paper execution adapter even if a Binance mode is selected.
+- The current Binance execution implementation is spot-market oriented. If you want isolated margin or futures behavior later, that should be added as a separate execution adapter rather than widened implicitly.
+
 ### Launch web UI
 
 ```bash
