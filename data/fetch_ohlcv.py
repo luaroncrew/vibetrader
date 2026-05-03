@@ -15,6 +15,7 @@ def fetch_ohlcv(
     timeframe: str = "4h",
     since_days: int = 730,
     exchange_id: str = "binance",
+    testnet: bool = False,
 ) -> pd.DataFrame:
     """Download OHLCV data from exchange.
 
@@ -34,6 +35,8 @@ def fetch_ohlcv(
         config["apiKey"] = api_key
         config["secret"] = secret
     exchange = getattr(ccxt, exchange_id)(config)
+    if exchange_id == "binance" and testnet:
+        exchange.set_sandbox_mode(True)
     since = exchange.milliseconds() - since_days * 24 * 60 * 60 * 1000
 
     all_candles = []
@@ -68,10 +71,11 @@ def main():
     parser.add_argument("--timeframe", default="4h")
     parser.add_argument("--days", type=int, default=730)
     parser.add_argument("--output", default="data/btc_usdt_4h.csv")
+    parser.add_argument("--testnet", action="store_true")
     args = parser.parse_args()
 
     print(f"Fetching {args.symbol} {args.timeframe} candles for {args.days} days...")
-    df = fetch_ohlcv(args.symbol, args.timeframe, args.days)
+    df = fetch_ohlcv(args.symbol, args.timeframe, args.days, testnet=args.testnet)
     print(f"Fetched {len(df)} candles")
 
     print("Computing indicators...")
