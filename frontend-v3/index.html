@@ -298,6 +298,120 @@ body {
 }
 .center-loading .spinner { margin: 0 auto 16px; }
 
+/* Keyboard shortcuts button */
+.kbd-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 900;
+  user-select: none;
+}
+.kbd-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+  box-shadow: 0 2px 12px rgba(124, 77, 255, 0.3);
+}
+
+/* Shortcuts modal overlay */
+.shortcuts-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 950;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.shortcuts-overlay.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.shortcuts-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px 28px;
+  min-width: 300px;
+  max-width: 90vw;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+  transform: translateY(8px);
+  transition: transform 0.15s;
+}
+.shortcuts-overlay.visible .shortcuts-modal {
+  transform: translateY(0);
+}
+
+.shortcuts-modal h2 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.shortcuts-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.shortcuts-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+.shortcuts-list li span:last-child {
+  text-align: right;
+  color: var(--text);
+}
+
+kbd {
+  display: inline-block;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.75rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.shortcuts-close {
+  margin-top: 18px;
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 7px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.shortcuts-close:hover { border-color: var(--accent); color: var(--text); }
+
 /* Responsive */
 @media (max-width: 700px) {
   .showcase { gap: 8px; }
@@ -364,6 +478,25 @@ body {
 <!-- Image Modal -->
 <div class="image-modal" id="imageModal" style="display:none">
   <img id="modalImg" alt="Zoomed">
+</div>
+
+<!-- Keyboard Shortcuts Button -->
+<button class="kbd-btn" id="kbdBtn" title="Keyboard shortcuts (?)">?</button>
+
+<!-- Keyboard Shortcuts Modal -->
+<div class="shortcuts-overlay" id="shortcutsOverlay">
+  <div class="shortcuts-modal" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+    <h2>Keyboard Shortcuts</h2>
+    <ul class="shortcuts-list">
+      <li><span>Toggle this panel</span>     <span><kbd>?</kbd></span></li>
+      <li><span>Close modal / go back</span> <span><kbd>Esc</kbd></span></li>
+      <li><span>Refresh chart list</span>    <span><kbd>R</kbd></span></li>
+      <li><span>Previous chart</span>        <span><kbd>←</kbd></span></li>
+      <li><span>Next chart</span>            <span><kbd>→</kbd></span></li>
+      <li><span>Open selected chart</span>   <span><kbd>Enter</kbd></span></li>
+    </ul>
+    <button class="shortcuts-close" id="shortcutsClose">Close</button>
+  </div>
 </div>
 
 <script>
@@ -492,6 +625,7 @@ function showSelection() {
   loadingView.style.display = 'none';
   resultView.style.display = 'none';
   selectionView.style.display = '';
+  focusedCardIndex = -1;
 }
 
 document.getElementById('backBtn').addEventListener('click', showSelection);
@@ -509,8 +643,86 @@ function openModal(src) {
 }
 
 imageModal.addEventListener('click', () => { imageModal.style.display = 'none'; });
+
+// ---------------------------------------------------------------------------
+// Keyboard Shortcuts Panel
+// ---------------------------------------------------------------------------
+
+const kbdBtn = document.getElementById('kbdBtn');
+const shortcutsOverlay = document.getElementById('shortcutsOverlay');
+const shortcutsClose = document.getElementById('shortcutsClose');
+
+function openShortcuts() { shortcutsOverlay.classList.add('visible'); }
+function closeShortcuts() { shortcutsOverlay.classList.remove('visible'); }
+
+kbdBtn.addEventListener('click', () => shortcutsOverlay.classList.toggle('visible'));
+shortcutsClose.addEventListener('click', closeShortcuts);
+shortcutsOverlay.addEventListener('click', e => { if (e.target === shortcutsOverlay) closeShortcuts(); });
+
+// Chart navigation helpers
+let focusedCardIndex = -1;
+
+function getCards() {
+  return Array.from(showcase.querySelectorAll('.showcase-card'));
+}
+
+function focusCard(index) {
+  const cards = getCards();
+  if (!cards.length) return;
+  focusedCardIndex = Math.max(0, Math.min(index, cards.length - 1));
+  cards.forEach((c, i) => c.style.outline = i === focusedCardIndex ? '2px solid var(--accent)' : '');
+  cards[focusedCardIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+// ---------------------------------------------------------------------------
+// Global keydown handler
+// ---------------------------------------------------------------------------
+
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') imageModal.style.display = 'none';
+  const tag = document.activeElement && document.activeElement.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+  // Escape: close modals in priority order
+  if (e.key === 'Escape') {
+    if (shortcutsOverlay.classList.contains('visible')) { closeShortcuts(); return; }
+    if (imageModal.style.display !== 'none') { imageModal.style.display = 'none'; return; }
+    if (resultView.style.display !== 'none') { showSelection(); return; }
+    return;
+  }
+
+  // Toggle shortcuts panel
+  if (e.key === '?') {
+    shortcutsOverlay.classList.toggle('visible');
+    return;
+  }
+
+  // R — refresh chart list (only on selection view)
+  if (e.key === 'r' || e.key === 'R') {
+    if (selectionView.style.display !== 'none' && imageModal.style.display === 'none') {
+      showcase.innerHTML = '<div class="center-loading"><div class="spinner"></div>Loading charts&hellip;</div>';
+      focusedCardIndex = -1;
+      fetch('/api/showcase')
+        .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+        .then(data => renderShowcase(data.items))
+        .catch(err => { showcase.innerHTML = `<div class="center-loading" style="color:var(--sell)">Failed: ${err}</div>`; });
+    }
+    return;
+  }
+
+  // Arrow navigation — only on selection view, no modals open
+  if (selectionView.style.display !== 'none' && imageModal.style.display === 'none' && !shortcutsOverlay.classList.contains('visible')) {
+    const cards = getCards();
+    if (!cards.length) return;
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      focusCard(focusedCardIndex <= 0 ? cards.length - 1 : focusedCardIndex - 1);
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      focusCard(focusedCardIndex < 0 ? 0 : focusedCardIndex >= cards.length - 1 ? 0 : focusedCardIndex + 1);
+    } else if (e.key === 'Enter' && focusedCardIndex >= 0) {
+      cards[focusedCardIndex].click();
+    }
+  }
 });
 </script>
 </body>
