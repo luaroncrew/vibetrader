@@ -298,6 +298,33 @@ body {
 }
 .center-loading .spinner { margin: 0 auto 16px; }
 
+/* Gray mode toggle */
+#grayToggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #555;
+  border: 2px solid #888;
+  color: #ccc;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: border-color 0.2s, background 0.2s;
+  user-select: none;
+}
+#grayToggle:hover { border-color: #bbb; background: #666; }
+#grayToggle.active { border-color: #fff; background: #888; }
+
+html.gray-mode { filter: grayscale(100%); }
+
 /* Responsive */
 @media (max-width: 700px) {
   .showcase { gap: 8px; }
@@ -311,6 +338,7 @@ body {
 </style>
 </head>
 <body>
+<button id="grayToggle" title="Toggle gray mode">G</button>
 
 
 <!-- Selection View -->
@@ -511,6 +539,24 @@ function openModal(src) {
 imageModal.addEventListener('click', () => { imageModal.style.display = 'none'; });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') imageModal.style.display = 'none';
+});
+
+// ---------------------------------------------------------------------------
+// Gray mode
+// ---------------------------------------------------------------------------
+
+const grayToggle = document.getElementById('grayToggle');
+const GRAY_KEY = 'vibetrader_gray_mode';
+
+if (localStorage.getItem(GRAY_KEY) === '1') {
+  document.documentElement.classList.add('gray-mode');
+  grayToggle.classList.add('active');
+}
+
+grayToggle.addEventListener('click', () => {
+  const on = document.documentElement.classList.toggle('gray-mode');
+  grayToggle.classList.toggle('active', on);
+  localStorage.setItem(GRAY_KEY, on ? '1' : '0');
 });
 </script>
 </body>
